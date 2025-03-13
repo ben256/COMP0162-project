@@ -5,6 +5,7 @@ The main selection criteria is that the stock has been present on the S&P since 
 The finalised list is saved to a CSV file: valid_stocks.csv.
 This script is designed to be run independently and prior to any processing/training.
 """
+
 import logging
 import datetime
 

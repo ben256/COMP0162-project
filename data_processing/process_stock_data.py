@@ -2,7 +2,7 @@
 Stock data processing functions.
 
 These functions fetch the stock data from yFinance and process it for use in the dataset.
-The downloaded price data will be stored in stock_data.csv, located in data/stock/raw.
+The downloaded price data will be stored in stock_data.csv, located in data/stock.
 If the data is already downloaded locally, then the data will be checked and if okay then .
 The following data is downloaded:
 - High Price
@@ -10,8 +10,8 @@ The following data is downloaded:
 - Open Price
 - Close Price
 - Daily Volume
-
 """
+
 import logging
 
 import numpy as np
@@ -25,11 +25,11 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 def fetch_data(
-        total_stock_count: int = 100,
+        total_stock_count: int = 200,
         start_date: str = '2015-01-01',
         end_date: str = '2025-01-01',
         reference_data_path = '../data/reference',
-        stock_data_path = '../data/stock/raw'
+        stock_data_path = '../data/stock'
 ):
     stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')
     reference_data = pd.read_csv(f'{reference_data_path}/valid_stocks.csv', parse_dates=['date_added'], date_format='%Y-%m-%d')
