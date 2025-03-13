@@ -1,0 +1,293 @@
+import math
+
+import torch
+import torch.nn as nn
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(
+            self,
+            embed_dim: int = 128,
+            dropout: float = 0.1,
+            max_len: int = 5000,
+    ):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        pe = torch.zeros(max_len, embed_dim)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, embed_dim)
+        Returns:
+            Tensor of the same shape as x after adding positional encodings
+        """
+        # [batch_size, 60, 128]
+        x = x + self.pe[:, :x.size(1)]
+        return self.dropout(x)
+
+
+class PositionWiseFFN(nn.Module):
+    def __init__(
+            self,
+            embed_dim: int = 128,
+            hidden_dim: int = 128,
+            dropout: float = 0.1
+    ):
+        super().__init__()
+        self.fc1 = nn.Linear(embed_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, embed_dim)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, embed_dim)
+        Returns:
+            Tensor of shape (batch_size, sequence_length, embed_dim)
+        """
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+class TransformerEncoderBlock(nn.Module):
+    def __init__(
+            self,
+            embed_dim: int = 128,
+            num_head: int = 4,
+            dropout: float = 0.1,
+            ff_hidden_dim: int = 256
+    ):
+        super().__init__()
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_head, dropout=dropout, batch_first=True)
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.dropout1 = nn.Dropout(dropout)
+        self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim)
+        self.norm2 = nn.LayerNorm(embed_dim)
+        self.dropout2 = nn.Dropout(dropout)
+
+    def forward(self, x, mask=None):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, embed_dim)
+            mask: Not really sure what this does
+        Returns:
+            Tensor of shape (batch_size, sequence_length, embed_dim)
+        """
+        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask)
+        x = x + self.dropout1(attn_output)
+        x = self.norm1(x)
+
+        ffn_output = self.ffn(x)
+        x = x + self.dropout2(ffn_output)
+        x = self.norm2(x)
+
+        return x
+
+
+class StockEncoder(nn.Module):
+    def __init__(
+            self,
+            input_dim: int = 5,
+            embed_dim: int = 128,
+            num_layers: int = 1,
+            num_head: int = 4,
+            dropout: float = 0.1,
+            ff_hidden_dim: int = 256
+    ):
+        super().__init__()
+        self.linear_projection = nn.Linear(input_dim, embed_dim)
+        self.positional_encoding = PositionalEncoding(embed_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.encoder_blocks = nn.ModuleList([
+            TransformerEncoderBlock(embed_dim, num_head, dropout, ff_hidden_dim)
+            for _ in range(num_layers)
+        ])
+
+    def forward(self, x):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, input_dim)
+        Returns:
+            Tensor of shape (batch_size, sequence_length, embed_dim)
+        """
+        x = self.linear_projection(x)
+        x = self.positional_encoding(x)
+        x = self.dropout(x)
+
+        for encoder_block in self.encoder_blocks:
+            x = encoder_block(x)
+
+        return x
+
+
+class MarketEncoder(nn.Module):
+    def __init__(
+            self,
+            input_dim: int = 5,
+            embed_dim: int = 128,
+            ff_hidden_dim: int = 256,
+            dropout: float = 0.1
+    ):
+        super().__init__()
+        self.linear_projection = nn.Linear(input_dim, embed_dim)
+        self.positional_encoding = PositionalEncoding(embed_dim)
+        self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim, dropout)
+
+    def forward(self, x):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, input_dim)
+        Returns:
+            Tensor of shape (batch_size, sequence_length, embed_dim)
+        """
+        x = self.linear_projection(x)
+        x = self.positional_encoding(x)
+        x = self.ffn(x)
+
+        return x
+
+
+class Fusion(nn.Module):
+    def __init__(
+            self,
+            fusion_type: str = 'concat',
+            stock_input_dim: int = 5,
+            market_input_dim: int = 4,
+            embed_dim: int = 128,
+            num_layers: int = 1,
+            num_head: int = 4,
+            dropout: float = 0.1,
+            ff_hidden_dim: int = 256
+    ):
+        super().__init__()
+        self.fusion_type = fusion_type
+        self.stock_encoder = StockEncoder(
+            input_dim=stock_input_dim,
+            embed_dim=embed_dim,
+            num_layers=num_layers,
+            num_head=num_head,
+            dropout=dropout,
+            ff_hidden_dim=ff_hidden_dim
+        )
+        self.market_encoder = MarketEncoder(
+            input_dim=market_input_dim,
+            embed_dim=embed_dim,
+            ff_hidden_dim=ff_hidden_dim,
+            dropout=dropout
+        )
+        self.linear_fusion = nn.Linear(embed_dim*2, embed_dim)
+        self.relu = nn.ReLU()
+
+    def forward(self, x, y):
+        """
+        Parameters:
+            x: Stock embeddings, tensor of shape (batch_size, sequence_length, input_dim)
+            y: Market embeddings, tensor of shape (batch_size, sequence_length, input_dim)
+        Returns:
+            Tensor of shape (batch_size, sequence_length, embed_dim)
+        """
+        x = self.stock_encoder(x)
+        y = self.market_encoder(y)
+
+        if self.fusion_type == 'concat':
+            out = torch.cat([x, y], -1)
+            out = self.linear_fusion(out)
+            out = self.relu(out)
+            return out
+
+        elif self.fusion_type == 'cross-attn':
+            ...
+            # Use MultiheadAttention to perform cross-attention
+        else:
+            raise ValueError("Invalid fusion type")
+
+
+class PredictionHead(nn.Module):
+    def __init__(
+            self,
+            prediction_type: str = 'last',
+            embed_dim: int = 128,
+            hidden_dim: int = 64,
+            dropout: float = 0.1
+    ):
+        self.prediction_type = prediction_type
+        self.fc1 = nn.Linear(embed_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        """
+        Parameters:
+            x: Tensor of shape (batch_size, sequence_length, embed_dim)
+               Typically, the output of your fusion module.
+        Returns:
+            Tensor of shape (batch_size, 1) containing the predicted percentage change
+        """
+        if self.prediction_type == 'last':
+            x_last = x[:, -1, :]  # shape: (batch_size, embed_dim)
+        elif self.prediction_type == 'pool':
+            x_last = torch.mean(x, dim=1)
+        else:
+            raise ValueError("Invalid prediction type")
+
+        x = self.fc1(x_last)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+class ReturnsModel(nn.Module):
+    def __init__(
+            self,
+            fusion_type: str = 'concat',
+            stock_input_dim: int = 5,
+            market_input_dim: int = 4,
+            embed_dim: int = 128,
+            num_layers: int = 1,
+            num_head: int = 4,
+            dropout: float = 0.1,
+            ff_hidden_dim: int = 256
+    ):
+        super().__init__()
+        self.fusion = Fusion(
+            fusion_type=fusion_type,
+            stock_input_dim=stock_input_dim,
+            market_input_dim=market_input_dim,
+            embed_dim=embed_dim,
+            num_layers=num_layers,
+            num_head=num_head,
+            dropout=dropout,
+            ff_hidden_dim=ff_hidden_dim
+        )
+        self.prediction_head = PredictionHead(
+            prediction_type='last',
+            embed_dim=embed_dim,
+            dropout=dropout
+        )
+
+    def forward(self, stock_data, market_data):
+        """
+        Parameters:
+            stock_data: Tensor of shape (batch_size, sequence_length, 5)
+            market_data: Tensor of shape (batch_size, sequence_length, 4)
+        Returns:
+            Tensor of shape (batch_size, 1) containing the predicted percentage change
+        """
+        x = self.fusion(stock_data, market_data)
+        return self.prediction_head(x)

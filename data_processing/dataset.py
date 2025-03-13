@@ -30,8 +30,8 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = {
-            "stock_data": self.stock_data[idx],   # Tensor of shape [5]
-            "market_data": self.market_data[idx], # Tensor of shape [3]
-            "target": self.target[idx]           # Scalar tensor for the target
+            "stock_data": self.stock_data[idx],
+            "market_data": self.market_data[idx],
+            "target": self.target[idx]
         }
         return sample
