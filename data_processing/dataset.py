@@ -13,10 +13,10 @@ class CustomDataset(Dataset):
         """
         features = torch.tensor(unified_features, dtype=torch.float32)
 
-        self.stock_data = features[:, :, :5]
-        self.market_data = features[:, :, 5:9]
-        self.target_return = features[:, :, 9]
-        self.target_sign = features[:, :, 10]
+        self.stock_features = features[:, :, :5]
+        self.market_features = features[:, :, 5:9]
+        self.target_return = features[:, -1, 9].unsqueeze(1)
+        self.target_sign = features[:, -1, 10].unsqueeze(1)
 
         if target_type == 'return':
             self.target = self.target_return
@@ -29,9 +29,4 @@ class CustomDataset(Dataset):
         return len(self.target)
 
     def __getitem__(self, idx):
-        sample = {
-            "stock_data": self.stock_data[idx],
-            "market_data": self.market_data[idx],
-            "target": self.target[idx]
-        }
-        return sample
+        return self.stock_features[idx], self.market_features[idx], self.target[idx],

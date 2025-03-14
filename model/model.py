@@ -224,6 +224,7 @@ class PredictionHead(nn.Module):
             hidden_dim: int = 64,
             dropout: float = 0.1
     ):
+        super().__init__()
         self.prediction_type = prediction_type
         self.fc1 = nn.Linear(embed_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, 1)

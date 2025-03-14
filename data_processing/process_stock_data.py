@@ -97,7 +97,3 @@ def fetch_data(
         stock_data.to_csv(f'{stock_data_path}/stock_data.csv', index=False, date_format='%Y-%m-%d')
     else:
         logging.info('No new data fetched')
-
-
-if __name__ == '__main__':
-    fetch_data()
