@@ -7,7 +7,9 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 def main():
-    train()
+    train(
+        dataset_path = './data/datasets',
+    )
 
 if __name__ == '__main__':
     main()
