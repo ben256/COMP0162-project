@@ -21,7 +21,7 @@ def main():
     create_datasets(
         stock_features_path = './data/stock',
         market_features_path = './data/market',
-        dataset_path = './data/datasets',
+        dataset_path = '/scratch0/bnaylor/datasets'
     )  # Create train, validation and test datasets
 
 

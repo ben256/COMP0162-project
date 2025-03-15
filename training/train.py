@@ -61,12 +61,13 @@ def train(
         learning_rate: float = 1e-4,
         epochs: int = 100,
         dataset_path: str = '../data/datasets',
+        output_dir: str = '../output'
 ):
     torch.manual_seed(42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
 
-    output_dir = create_training_folder('../output')
+    output_dir = create_training_folder(output_dir)
     checkpoint_dir = os.path.join(output_dir, 'checkpoints')
 
     train_dataset = CustomDataset(np.load(f'{dataset_path}/train.npy'))
