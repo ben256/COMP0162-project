@@ -69,7 +69,7 @@ class TransformerEncoderBlock(nn.Module):
             embed_dim: int = 128,
             num_head: int = 4,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 256
+            ff_hidden_dim: int = 128
     ):
         super().__init__()
         self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_head, dropout=dropout, batch_first=True)
@@ -106,7 +106,7 @@ class StockEncoder(nn.Module):
             num_layers: int = 1,
             num_head: int = 4,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 256
+            ff_hidden_dim: int = 128
     ):
         super().__init__()
         self.linear_projection = nn.Linear(input_dim, embed_dim)
@@ -139,7 +139,7 @@ class MarketEncoder(nn.Module):
             self,
             input_dim: int = 5,
             embed_dim: int = 128,
-            ff_hidden_dim: int = 256,
+            ff_hidden_dim: int = 128,
             dropout: float = 0.1
     ):
         super().__init__()
@@ -171,7 +171,7 @@ class Fusion(nn.Module):
             num_layers: int = 1,
             num_head: int = 4,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 256
+            ff_hidden_dim: int = 128
     ):
         super().__init__()
         self.fusion_type = fusion_type
@@ -263,7 +263,7 @@ class ReturnsModel(nn.Module):
             num_layers: int = 1,
             num_head: int = 4,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 256
+            ff_hidden_dim: int = 128
     ):
         super().__init__()
         self.fusion = Fusion(

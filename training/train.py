@@ -21,9 +21,9 @@ class EarlyStopping:
     def __init__(
             self,
             patience: int = 5,
-            verbose: bool = False,
             delta: float = 0.0,
             offset: int = 20,
+            verbose: bool = False,
     ):
         """
         Args:
@@ -32,12 +32,12 @@ class EarlyStopping:
             delta (float): Minimum change in validation loss to qualify as an improvement.
         """
         self.patience = patience
-        self.verbose = verbose
+        self.delta = delta
         self.offset = offset
+        self.verbose = verbose
         self.counter = 0
         self.best_loss = None
         self.early_stop = False
-        self.delta = delta
         self.best_model_state = None
 
     def __call__(self, val_loss, model, epoch=None):
@@ -67,6 +67,9 @@ def train(
         batch_size: int = 32,
         learning_rate: float = 1e-4,
         epochs: int = 100,
+        early_stopping_patience: int = 5,
+        early_stopping_delta: float = 1e-4,
+        early_stopping_offset: int = 20,
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
 ):
@@ -79,7 +82,6 @@ def train(
 
     train_dataset = CustomDataset(np.load(f'{dataset_path}/train.npy'))
     val_dataset = CustomDataset(np.load(f'{dataset_path}/validation.npy'))
-    test_dataset = CustomDataset(np.load(f'{dataset_path}/test.npy'))
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
@@ -93,7 +95,12 @@ def train(
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
-    early_stopping = EarlyStopping(patience=5, verbose=True, delta=1e-4)
+    early_stopping = EarlyStopping(
+        patience=early_stopping_patience,
+        delta=early_stopping_delta,
+        offset=early_stopping_offset,
+        verbose=True,
+    )
 
     try:
         for epoch in range(epochs):
