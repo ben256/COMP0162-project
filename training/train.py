@@ -18,7 +18,13 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 class EarlyStopping:
-    def __init__(self, patience: int = 5, verbose: bool = False, delta: float = 0.0):
+    def __init__(
+            self,
+            patience: int = 5,
+            verbose: bool = False,
+            delta: float = 0.0,
+            offset: int = 20,
+    ):
         """
         Args:
             patience (int): How many epochs to wait after last improvement.
@@ -27,6 +33,7 @@ class EarlyStopping:
         """
         self.patience = patience
         self.verbose = verbose
+        self.offset = offset
         self.counter = 0
         self.best_loss = None
         self.early_stop = False
@@ -48,10 +55,10 @@ class EarlyStopping:
             if self.verbose:
                 logging.info(f"Validation loss improved to {val_loss:.6f}. Saving model.")
         else:
-            self.counter += 1
-            if self.verbose:
-                print(f"No improvement in validation loss. Counter: {self.counter + 1}/{self.patience}")
-            if epoch >= 20:
+            if epoch >= self.offset:
+                self.counter += 1
+                if self.verbose:
+                    print(f"No improvement in validation loss. Counter: {self.counter + 1}/{self.patience}")
                 if self.counter >= self.patience:
                     self.early_stop = True
 
@@ -76,7 +83,6 @@ def train(
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
     model = ReturnsModel()
     model.to(device)
@@ -101,6 +107,8 @@ def train(
                 optimiser.zero_grad()
                 output = model(stock, market)
                 loss = loss_function(output, target)
+
+                optimiser.zero_grad()
                 loss.backward()
                 optimiser.step()
 
