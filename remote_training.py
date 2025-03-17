@@ -9,13 +9,13 @@ logging.getLogger().setLevel(logging.INFO)
 
 def main():
     parser = argparse.ArgumentParser(description="Training script with configurable paths.")
-    parser.add_argument('--dataset_path', type=str, default='/scratch0/bnaylor/datasets',
+    parser.add_argument('--dataset_path', type=str, default='./data/datasets',
                         help='Path to the dataset directory')
-    parser.add_argument('--output_dir', type=str, default='/scratch0/bnaylor/output',
+    parser.add_argument('--output_dir', type=str, default='./data/output',
                         help='Path to the output directory')
-    parser.add_argument('--batch_size', type=int, default=32,
+    parser.add_argument('--batch_size', type=int, default=128,
                         help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.001,
+    parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate for training')
     parser.add_argument('--epochs', type=int, default=100,
                         help='Number of epochs for training')

@@ -102,6 +102,12 @@ def train(
         verbose=True,
     )
 
+    logging.info("Starting training loop")
+    logging.info(f"Training for {epochs} epochs")
+    logging.info(f"Batch size: {batch_size}")
+    logging.info(f"Learning rate: {learning_rate}")
+    logging.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
+
     try:
         for epoch in range(epochs):
             model.train()

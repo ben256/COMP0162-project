@@ -16,7 +16,7 @@ def main():
                         help='Path to the stock data directory')
     parser.add_argument('--market_data_path', type=str, default='./data/market',
                         help='Path to the market data directory')
-    parser.add_argument('--dataset_path', type=str, default='/scratch0/bnaylor/datasets',
+    parser.add_argument('--dataset_path', type=str, default='./data/datasets',
                         help='Path to the output dataset directory')
     args = parser.parse_args()
 
