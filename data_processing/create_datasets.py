@@ -157,7 +157,7 @@ def create_datasets(
     np.save(f'{dataset_path}/validation.npy', validation)
     np.save(f'{dataset_path}/test.npy', test)
 
-
-if __name__ == '__main__':
-    format_data()
-    create_datasets()
+#
+# if __name__ == '__main__':
+#     format_data()
+#     create_datasets()

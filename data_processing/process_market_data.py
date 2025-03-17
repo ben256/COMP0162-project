@@ -55,6 +55,6 @@ def process_market_data(
 
     market_context.to_csv(f'{market_data_path}/market_data.csv', index=False, date_format='%Y-%m-%d')
 
-
-if __name__ == '__main__':
-    process_market_data()
+#
+# if __name__ == '__main__':
+#     process_market_data()

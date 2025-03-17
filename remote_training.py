@@ -25,6 +25,16 @@ def main():
                         help='Minimum change in validation loss to qualify as an improvement')
     parser.add_argument('--early_stopping_offset', type=int, default=20,
                         help='Number of epochs before early stopping starts')
+    parser.add_argument('--shuffle_train_data', type=bool, default=True,
+                        help='Shuffle training data')
+    parser.add_argument('--dropout', type=float, default=0.1,
+                        help='Dropout rate')
+    parser.add_argument('--num_layers', type=int, default=1,
+                        help='Number of transformer layers')
+    parser.add_argument('--num_head', type=int, default=4,
+                        help='Number of attention heads')
+    parser.add_argument('--prediction_type', type=str, default='last',
+                        help='Type of prediction head')
 
     args = parser.parse_args()
 
@@ -35,6 +45,11 @@ def main():
         early_stopping_patience=args.early_stopping_patience,
         early_stopping_delta=args.early_stopping_delta,
         early_stopping_offset=args.early_stopping_offset,
+        shuffle_train_data=args.shuffle_train_data,
+        dropout=args.dropout,
+        num_layers=args.num_layers,
+        num_head=args.num_head,
+        prediction_type=args.prediction_type,
         dataset_path = args.dataset_path,
         output_dir = args.output_dir
     )

@@ -70,25 +70,26 @@ def fetch_data(
             end=end_date,
             interval='1D'
         )
-        dates_yf = symbol_data.index.tz_localize(None).normalize()
+        if not symbol_data.empty:
+            dates_yf = symbol_data.index.tz_localize(None).normalize()
 
-        if np.array_equal(dates_yf, nyse_calendar):
-            symbol_data = symbol_data[['Open', 'High', 'Low', 'Close', 'Volume']]
-            symbol_data['date'] = dates_yf
-            symbol_data['symbol'] = symbol
+            if np.array_equal(dates_yf, nyse_calendar):
+                symbol_data = symbol_data[['Open', 'High', 'Low', 'Close', 'Volume']]
+                symbol_data['date'] = dates_yf
+                symbol_data['symbol'] = symbol
 
-            symbol_data.rename({
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume'
-            }, axis=1, inplace=True)
+                symbol_data.rename({
+                    'Open': 'open',
+                    'High': 'high',
+                    'Low': 'low',
+                    'Close': 'close',
+                    'Volume': 'volume'
+                }, axis=1, inplace=True)
 
-            fetched.append(symbol_data)
-            stock_count += 1
-        else:
-            logging.warning(f'Not enough data for {symbol}, skipping')
+                fetched.append(symbol_data)
+                stock_count += 1
+            else:
+                logging.warning(f'Not enough data for {symbol}, skipping')
 
     if fetched:
         logging.info(f'Fetched data for {len(fetched)} stocks')

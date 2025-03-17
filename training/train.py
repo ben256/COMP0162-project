@@ -70,10 +70,15 @@ def train(
         early_stopping_patience: int = 5,
         early_stopping_delta: float = 1e-4,
         early_stopping_offset: int = 20,
+        shuffle_train_data: bool = True,
+        dropout: float = 0.1,
+        num_layers: int = 1,
+        num_head: int = 4,
+        prediction_type: str = 'last',
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
 ):
-    torch.manual_seed(42)
+    # torch.manual_seed(42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
 
@@ -83,15 +88,25 @@ def train(
     train_dataset = CustomDataset(np.load(f'{dataset_path}/train.npy'))
     val_dataset = CustomDataset(np.load(f'{dataset_path}/validation.npy'))
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train_data)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
-    model = ReturnsModel()
+    model = ReturnsModel(
+        fusion_type='concat',
+        prediction_type=prediction_type,
+        stock_input_dim=5,
+        market_input_dim=4,
+        embed_dim=128,
+        num_layers=num_layers,
+        num_head=num_head,
+        dropout=dropout,
+        ff_hidden_dim=128
+    )
     model.to(device)
 
-    loss_function = nn.MSELoss()
+    loss_function = nn.L1Loss()
     optimiser = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.5, patience=2, verbose=True)
+    # scheduler = torch.optim.lr_scheduler.LRScheduler(optimiser, last_epoch=-1)
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
@@ -153,7 +168,7 @@ def train(
             logging.info(f"Validation: Average loss: {avg_val_loss:.6f}")
 
             # Step the learning rate scheduler with the validation loss
-            scheduler.step(avg_val_loss)
+            # scheduler.step(avg_val_loss)
 
             # Check early stopping condition
             early_stopping(avg_val_loss, model, epoch)
@@ -190,6 +205,6 @@ def train(
     }, final_model_path)
     logging.info(f"Training complete. Final model saved to: {final_model_path}")
 
-#
+
 # if __name__ == '__main__':
 #     train()

@@ -257,6 +257,7 @@ class ReturnsModel(nn.Module):
     def __init__(
             self,
             fusion_type: str = 'concat',
+            prediction_type: str = 'last',
             stock_input_dim: int = 5,
             market_input_dim: int = 4,
             embed_dim: int = 128,
@@ -277,7 +278,7 @@ class ReturnsModel(nn.Module):
             ff_hidden_dim=ff_hidden_dim
         )
         self.prediction_head = PredictionHead(
-            prediction_type='last',
+            prediction_type=prediction_type,
             embed_dim=embed_dim,
             dropout=dropout
         )
