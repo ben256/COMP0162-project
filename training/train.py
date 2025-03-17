@@ -64,7 +64,7 @@ class EarlyStopping:
 
 
 def train(
-        batch_size: int = 32,
+        batch_size: int = 128,
         learning_rate: float = 1e-4,
         epochs: int = 100,
         early_stopping_patience: int = 5,
@@ -183,7 +183,7 @@ def train(
         'validation_loss_history': validation_loss_history,
     }, final_model_path)
     logging.info(f"Training complete. Final model saved to: {final_model_path}")
-#
-#
-# if __name__ == '__main__':
-#     train()
+
+
+if __name__ == '__main__':
+    train()

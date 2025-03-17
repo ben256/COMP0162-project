@@ -90,6 +90,10 @@ def format_data(
     processed_stock_features.to_csv(f'{stock_data_path}/stock_features.csv', index=False)
 
     # Process market features
+    market_data['spx_returns'] = market_data['spx_price'].pct_change()
+    market_data.drop(columns=['spx_price'], inplace=True)
+    market_data.dropna(inplace=True)
+
     processed_market_features = market_data
     numerical_cols = processed_market_features.select_dtypes(include=['float64', 'int64']).columns.tolist()
 
@@ -116,7 +120,7 @@ def create_datasets(
     market_features.sort_values(by='date', ascending=True)
 
     features = stock_features.merge(market_features, on='date')
-    features = features[['date', 'symbol', 'volume', 'returns', 'high_low_spread', 'close_open_spread', 'momentum', 'spx_price', 'spx_vol', 'vix', 'cor1m', 'target', 'target_sign']]
+    features = features[['date', 'symbol', 'volume', 'returns', 'high_low_spread', 'close_open_spread', 'momentum', 'spx_returns', 'spx_vol', 'vix', 'cor1m', 'target', 'target_sign']]
 
     # Split into train, validation and test sets
     start_date = pd.to_datetime(start_date)
@@ -152,3 +156,8 @@ def create_datasets(
     np.save(f'{dataset_path}/train.npy', train)
     np.save(f'{dataset_path}/validation.npy', validation)
     np.save(f'{dataset_path}/test.npy', test)
+
+
+if __name__ == '__main__':
+    format_data()
+    create_datasets()
