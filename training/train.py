@@ -184,6 +184,6 @@ def train(
     }, final_model_path)
     logging.info(f"Training complete. Final model saved to: {final_model_path}")
 
-
-if __name__ == '__main__':
-    train()
+#
+# if __name__ == '__main__':
+#     train()
