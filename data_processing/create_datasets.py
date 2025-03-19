@@ -20,21 +20,6 @@ logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(fil
 logging.getLogger().setLevel(logging.INFO)
 
 
-def create_sliding_windows2(
-        features: pd.DataFrame,
-        window_length: int = 60,
-):
-    """
-    Create a sliding window of data for each stock.
-    """
-    features_array = features.drop(columns=['date', 'symbol']).to_numpy()
-
-    windows = []
-    for index in range(0, len(features_array) - window_length):
-        windows.append(features_array[index:index + window_length, :])
-
-    return windows
-
 def create_sliding_windows(group_data, window_length):
     # group_data: numpy array of shape [n, num_features]
     group_array = group_data.drop(columns=['date', 'symbol']).to_numpy()

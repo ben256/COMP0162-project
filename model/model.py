@@ -139,13 +139,19 @@ class MarketEncoder(nn.Module):
             self,
             input_dim: int = 5,
             embed_dim: int = 128,
+            num_layers: int = 1,
+            num_head: int = 4,
             ff_hidden_dim: int = 128,
             dropout: float = 0.1
     ):
         super().__init__()
         self.linear_projection = nn.Linear(input_dim, embed_dim)
         self.positional_encoding = PositionalEncoding(embed_dim)
-        self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim, dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.encoder_blocks = nn.ModuleList([
+            TransformerEncoderBlock(embed_dim, num_head, dropout, ff_hidden_dim)
+            for _ in range(num_layers)
+        ])
 
     def forward(self, x):
         """
@@ -156,7 +162,10 @@ class MarketEncoder(nn.Module):
         """
         x = self.linear_projection(x)
         x = self.positional_encoding(x)
-        x = self.ffn(x)
+        x = self.dropout(x)
+
+        for encoder_block in self.encoder_blocks:
+            x = encoder_block(x)
 
         return x
 
@@ -192,6 +201,10 @@ class Fusion(nn.Module):
         self.linear_fusion = nn.Linear(embed_dim*2, embed_dim)
         self.relu = nn.ReLU()
 
+        if self.fusion_type == 'cross_attn':
+            self.cross_attn = nn.MultiheadAttention(embed_dim, num_head, dropout=dropout, batch_first=True)
+
+
     def forward(self, x, y):
         """
         Parameters:
@@ -209,9 +222,14 @@ class Fusion(nn.Module):
             out = self.relu(out)
             return out
 
-        elif self.fusion_type == 'cross-attn':
-            ...
-            # Use MultiheadAttention to perform cross-attention
+        elif self.fusion_type == 'cross_attn':
+            # Use stock embeddings as queries, market embeddings as keys/values
+            attn_output, _ = self.cross_attn(query=x, key=y, value=y)
+            # Apply a residual connection with stock embeddings
+            out = x + attn_output
+            out = self.relu(out)
+            return out
+
         else:
             raise ValueError("Invalid fusion type")
 
@@ -231,18 +249,27 @@ class PredictionHead(nn.Module):
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
 
+        if self.prediction_type == 'attn_pool':
+            self.attn_vector = nn.Linear(embed_dim, 1)
+
     def forward(self, x):
         """
         Parameters:
             x: Tensor of shape (batch_size, sequence_length, embed_dim)
-               Typically, the output of your fusion module.
         Returns:
             Tensor of shape (batch_size, 1) containing the predicted percentage change
         """
         if self.prediction_type == 'last':
             x_last = x[:, -1, :]  # shape: (batch_size, embed_dim)
         elif self.prediction_type == 'pool':
-            x_last = torch.mean(x, dim=1)
+            x_last = torch.mean(x, dim=1) # shape: (batch_size, embed_dim)
+        elif self.prediction_type == 'attn_pool':
+            # Compute attention scores for each time step
+            attn_scores = self.attn_vector(x)  # (batch_size, sequence_length, 1)
+            # Normalize scores with softmax over the sequence dimension
+            attn_weights = torch.softmax(attn_scores, dim=1)  # (batch_size, sequence_length, 1)
+            # Weighted sum of embeddings over time
+            x_last = torch.sum(attn_weights * x, dim=1)  # (batch_size, embed_dim)
         else:
             raise ValueError("Invalid prediction type")
 
