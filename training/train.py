@@ -59,6 +59,7 @@ class EarlyStopping:
         self.delta = delta
         self.offset = offset
         self.verbose = verbose
+        self.logger = logger
         self.counter = 0
         self.best_loss = None
         self.early_stop = False
@@ -70,19 +71,19 @@ class EarlyStopping:
             self.best_loss = val_loss
             self.best_model_state = copy.deepcopy(model.state_dict())
             if self.verbose:
-                logger.info(f"Initial validation loss: {val_loss:.6f}. Saving model.")
+                self.logger.info(f"Initial validation loss: {val_loss:.6f}. Saving model.")
         elif val_loss < self.best_loss - self.delta:
             # Improvement has been made
             self.best_loss = val_loss
             self.best_model_state = copy.deepcopy(model.state_dict())
             self.counter = 0
             if self.verbose:
-                logger.info(f"Validation loss improved to {val_loss:.6f}. Saving model.")
+                self.logger.info(f"Validation loss improved to {val_loss:.6f}. Saving model.")
         else:
             if epoch >= self.offset:
                 self.counter += 1
                 if self.verbose:
-                    logger.info(f"No improvement in validation loss. Counter: {self.counter}/{self.patience}")
+                    self.logger.info(f"No improvement in validation loss. Counter: {self.counter}/{self.patience}")
                 if self.counter >= self.patience:
                     self.early_stop = True
 
