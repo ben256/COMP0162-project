@@ -1,6 +1,6 @@
 import json
-import logging
 import copy
+import math
 import os
 
 import numpy as np
@@ -8,17 +8,12 @@ import torch
 from torch import nn, optim
 
 from torch.utils.data import DataLoader
+from torch.optim import lr_scheduler
 
 from data_processing.dataset import CustomDataset
 from model.model import ReturnsModel
-from training.utils import create_training_folder
+from training.utils import create_training_folder, setup_logging
 
-logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(filename)s - %(message)s')
-logging.getLogger().setLevel(logging.INFO)
-
-
-import math
-import torch.optim.lr_scheduler as lr_scheduler
 
 def get_cosine_schedule_with_warmup(optimizer, num_warmup_epochs, num_training_epochs):
     """
@@ -43,7 +38,6 @@ def get_cosine_schedule_with_warmup(optimizer, num_warmup_epochs, num_training_e
             return 0.5 * (1.0 + math.cos(math.pi * progress))
 
     return lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
-
 
 
 class EarlyStopping:
@@ -75,19 +69,19 @@ class EarlyStopping:
             self.best_loss = val_loss
             self.best_model_state = copy.deepcopy(model.state_dict())
             if self.verbose:
-                logging.info(f"Initial validation loss: {val_loss:.6f}. Saving model.")
+                logger.info(f"Initial validation loss: {val_loss:.6f}. Saving model.")
         elif val_loss < self.best_loss - self.delta:
             # Improvement has been made
             self.best_loss = val_loss
             self.best_model_state = copy.deepcopy(model.state_dict())
             self.counter = 0
             if self.verbose:
-                logging.info(f"Validation loss improved to {val_loss:.6f}. Saving model.")
+                logger.info(f"Validation loss improved to {val_loss:.6f}. Saving model.")
         else:
             if epoch >= self.offset:
                 self.counter += 1
                 if self.verbose:
-                    logging.info(f"No improvement in validation loss. Counter: {self.counter + 1}/{self.patience}")
+                    logger.info(f"No improvement in validation loss. Counter: {self.counter}/{self.patience}")
                 if self.counter >= self.patience:
                     self.early_stop = True
 
@@ -104,17 +98,18 @@ def train(
         shuffle_train_data: bool = True,
         dropout: float = 0.1,
         num_layers: int = 2,
-        num_head: int = 4,
+        num_heads: int = 4,
         prediction_type: str = 'attn_pool',
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
 ):
-    torch.manual_seed(42)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f"Using device: {device}")
-
     output_dir = create_training_folder(output_dir)
     checkpoint_dir = os.path.join(output_dir, 'checkpoints')
+    logger = setup_logging(output_dir)
+    
+    torch.manual_seed(42)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Using device: {device}")
 
     train_dataset = CustomDataset(np.load(f'{dataset_path}/train.npy'))
     val_dataset = CustomDataset(np.load(f'{dataset_path}/validation.npy'))
@@ -129,7 +124,7 @@ def train(
         market_input_dim=4,
         embed_dim=128,
         num_layers=num_layers,
-        num_head=num_head,
+        num_heads=num_heads,
         dropout=dropout,
         ff_hidden_dim=256
     )
@@ -148,19 +143,19 @@ def train(
         verbose=True,
     )
 
-    logging.info("Starting training loop")
-    logging.info(f"Training for {num_training_epochs} epochs")
-    logging.info(f"Batch size: {batch_size}")
-    logging.info(f"Learning rate: {learning_rate}")
-    logging.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
-    logging.info(f"Shuffle training data: {shuffle_train_data}")
-    logging.info(f"Dropout: {dropout}")
-    logging.info(f"Number of transformer layers: {num_layers}")
-    logging.info(f"Number of attention heads: {num_head}")
-    logging.info(f"Prediction type: {prediction_type}")
-    logging.info(f"Fusion type: {fusion_type}")
-    logging.info(f"Dataset path: {dataset_path}")
-    logging.info(f"Output directory: {output_dir}")
+    logger.info("Starting training loop")
+    logger.info(f"Training for {num_training_epochs} epochs")
+    logger.info(f"Batch size: {batch_size}")
+    logger.info(f"Learning rate: {learning_rate}")
+    logger.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
+    logger.info(f"Shuffle training data: {shuffle_train_data}")
+    logger.info(f"Dropout: {dropout}")
+    logger.info(f"Number of transformer layers: {num_layers}")
+    logger.info(f"Number of attention heads: {num_heads}")
+    logger.info(f"Prediction type: {prediction_type}")
+    logger.info(f"Fusion type: {fusion_type}")
+    logger.info(f"Dataset path: {dataset_path}")
+    logger.info(f"Output directory: {output_dir}")
 
     try:
         for epoch in range(num_training_epochs):
@@ -182,7 +177,7 @@ def train(
 
                 if batch_idx % 1000 == 0:
                     progress = 100. * (batch_idx + 1) / len(train_dataloader)
-                    logging.info(
+                    logger.info(
                         f"Train Epoch: {epoch} [{batch_idx + 1}/{len(train_dataloader)} batches ({progress:.2f}%)]\tLoss: {loss.item():.8f}"
                     )
 
@@ -203,7 +198,7 @@ def train(
 
             avg_val_loss = epoch_val_loss / len(validation_dataloader)
             validation_loss_history.append(avg_val_loss)
-            logging.info(f"Validation: Average loss: {avg_val_loss:.8f}")
+            logger.info(f"Validation: Average loss: {avg_val_loss:.8f}")
 
             # Step the learning rate scheduler with the validation loss
             scheduler.step()
@@ -214,7 +209,7 @@ def train(
             # Check early stopping condition
             early_stopping(avg_val_loss, model, epoch)
             if early_stopping.early_stop:
-                logging.info("Early stopping triggered. Exiting training loop.")
+                logger.info("Early stopping triggered. Exiting training loop.")
                 break
 
     except Exception as e:
@@ -227,7 +222,7 @@ def train(
             'train_loss_history': train_loss_history,
             'validation_loss_history': validation_loss_history,
         }, error_checkpoint_path)
-        logging.error(f"Error encountered. Saved checkpoint: {error_checkpoint_path}")
+        logger.error(f"Error encountered. Saved checkpoint: {error_checkpoint_path}")
         raise e
 
     # Optionally load the best model state (if early stopping was triggered)
@@ -241,8 +236,8 @@ def train(
         'train_loss_history': train_loss_history,
         'validation_loss_history': validation_loss_history,
     }, final_model_path)
-    logging.info(f"Training complete. Final model saved to: {final_model_path}")
+    logger.info(f"Training complete. Final model saved to: {final_model_path}")
 
 
-# if __name__ == '__main__':
-#     train()
+if __name__ == '__main__':
+    train()

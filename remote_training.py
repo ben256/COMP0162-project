@@ -35,7 +35,7 @@ def main():
                         help='Dropout rate')
     parser.add_argument('--num_layers', type=int, default=2,
                         help='Number of transformer layers')
-    parser.add_argument('--num_head', type=int, default=4,
+    parser.add_argument('--num_heads', type=int, default=4,
                         help='Number of attention heads')
     parser.add_argument('--prediction_type', type=str, default='attn_pool',
                         help='Type of prediction head')
@@ -46,7 +46,7 @@ def main():
           num_warmup_epochs=args.num_warmup_epochs, fusion_type=args.fusion_type,
           early_stopping_patience=args.early_stopping_patience, early_stopping_delta=args.early_stopping_delta,
           early_stopping_offset=args.early_stopping_offset, shuffle_train_data=args.shuffle_train_data,
-          dropout=args.dropout, num_layers=args.num_layers, num_head=args.num_head,
+          dropout=args.dropout, num_layers=args.num_layers, num_heads=args.num_heads,
           prediction_type=args.prediction_type, dataset_path=args.dataset_path, output_dir=args.output_dir)
 
 

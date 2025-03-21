@@ -67,12 +67,12 @@ class TransformerEncoderBlock(nn.Module):
     def __init__(
             self,
             embed_dim: int = 128,
-            num_head: int = 4,
+            num_heads: int = 4,
             dropout: float = 0.1,
             ff_hidden_dim: int = 128
     ):
         super().__init__()
-        self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_head, dropout=dropout, batch_first=True)
+        self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
         self.norm1 = nn.LayerNorm(embed_dim)
         self.dropout1 = nn.Dropout(dropout)
         self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim)
@@ -104,7 +104,7 @@ class StockEncoder(nn.Module):
             input_dim: int = 5,
             embed_dim: int = 128,
             num_layers: int = 1,
-            num_head: int = 4,
+            num_heads: int = 4,
             dropout: float = 0.1,
             ff_hidden_dim: int = 128
     ):
@@ -113,7 +113,7 @@ class StockEncoder(nn.Module):
         self.positional_encoding = PositionalEncoding(embed_dim)
         self.dropout = nn.Dropout(dropout)
         self.encoder_blocks = nn.ModuleList([
-            TransformerEncoderBlock(embed_dim, num_head, dropout, ff_hidden_dim)
+            TransformerEncoderBlock(embed_dim, num_heads, dropout, ff_hidden_dim)
             for _ in range(num_layers)
         ])
 
@@ -140,7 +140,7 @@ class MarketEncoder(nn.Module):
             input_dim: int = 5,
             embed_dim: int = 128,
             num_layers: int = 1,
-            num_head: int = 4,
+            num_heads: int = 4,
             ff_hidden_dim: int = 128,
             dropout: float = 0.1
     ):
@@ -149,7 +149,7 @@ class MarketEncoder(nn.Module):
         self.positional_encoding = PositionalEncoding(embed_dim)
         self.dropout = nn.Dropout(dropout)
         self.encoder_blocks = nn.ModuleList([
-            TransformerEncoderBlock(embed_dim, num_head, dropout, ff_hidden_dim)
+            TransformerEncoderBlock(embed_dim, num_heads, dropout, ff_hidden_dim)
             for _ in range(num_layers)
         ])
 
@@ -178,7 +178,7 @@ class Fusion(nn.Module):
             market_input_dim: int = 4,
             embed_dim: int = 128,
             num_layers: int = 1,
-            num_head: int = 4,
+            num_heads: int = 4,
             dropout: float = 0.1,
             ff_hidden_dim: int = 128
     ):
@@ -188,13 +188,15 @@ class Fusion(nn.Module):
             input_dim=stock_input_dim,
             embed_dim=embed_dim,
             num_layers=num_layers,
-            num_head=num_head,
+            num_heads=num_heads,
             dropout=dropout,
             ff_hidden_dim=ff_hidden_dim
         )
         self.market_encoder = MarketEncoder(
             input_dim=market_input_dim,
             embed_dim=embed_dim,
+            num_layers=num_layers,
+            num_heads=num_heads,
             ff_hidden_dim=ff_hidden_dim,
             dropout=dropout
         )
@@ -202,7 +204,7 @@ class Fusion(nn.Module):
         self.relu = nn.ReLU()
 
         if self.fusion_type == 'cross_attn':
-            self.cross_attn = nn.MultiheadAttention(embed_dim, num_head, dropout=dropout, batch_first=True)
+            self.cross_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
 
 
     def forward(self, x, y):
@@ -264,11 +266,8 @@ class PredictionHead(nn.Module):
         elif self.prediction_type == 'pool':
             x_last = torch.mean(x, dim=1) # shape: (batch_size, embed_dim)
         elif self.prediction_type == 'attn_pool':
-            # Compute attention scores for each time step
             attn_scores = self.attn_vector(x)  # (batch_size, sequence_length, 1)
-            # Normalize scores with softmax over the sequence dimension
             attn_weights = torch.softmax(attn_scores, dim=1)  # (batch_size, sequence_length, 1)
-            # Weighted sum of embeddings over time
             x_last = torch.sum(attn_weights * x, dim=1)  # (batch_size, embed_dim)
         else:
             raise ValueError("Invalid prediction type")
@@ -289,7 +288,7 @@ class ReturnsModel(nn.Module):
             market_input_dim: int = 4,
             embed_dim: int = 128,
             num_layers: int = 1,
-            num_head: int = 4,
+            num_heads: int = 4,
             dropout: float = 0.1,
             ff_hidden_dim: int = 128
     ):
@@ -300,7 +299,7 @@ class ReturnsModel(nn.Module):
             market_input_dim=market_input_dim,
             embed_dim=embed_dim,
             num_layers=num_layers,
-            num_head=num_head,
+            num_heads=num_heads,
             dropout=dropout,
             ff_hidden_dim=ff_hidden_dim
         )
