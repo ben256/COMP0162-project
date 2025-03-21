@@ -47,6 +47,7 @@ class EarlyStopping:
             delta: float = 0.0,
             offset: int = 20,
             verbose: bool = False,
+            logger = None,
     ):
         """
         Args:
@@ -141,6 +142,7 @@ def train(
         delta=early_stopping_delta,
         offset=early_stopping_offset,
         verbose=True,
+        logger=logger,
     )
 
     logger.info("Starting training loop")
