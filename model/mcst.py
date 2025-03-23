@@ -40,7 +40,7 @@ class PositionWiseFFN(nn.Module):
     def __init__(
             self,
             embed_dim: int = 128,
-            hidden_dim: int = 128,
+            hidden_dim: int = 256,
             dropout: float = 0.1
     ):
         super().__init__()
@@ -67,9 +67,9 @@ class TransformerEncoderBlock(nn.Module):
     def __init__(
             self,
             embed_dim: int = 128,
-            num_heads: int = 4,
+            num_heads: int = 8,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 128
+            ff_hidden_dim: int = 256
     ):
         super().__init__()
         self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
@@ -101,12 +101,12 @@ class TransformerEncoderBlock(nn.Module):
 class StockEncoder(nn.Module):
     def __init__(
             self,
-            input_dim: int = 5,
+            input_dim: int = 22,
             embed_dim: int = 128,
-            num_layers: int = 1,
-            num_heads: int = 4,
+            num_layers: int = 3,
+            num_heads: int = 8,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 128
+            ff_hidden_dim: int = 256
     ):
         super().__init__()
         self.linear_projection = nn.Linear(input_dim, embed_dim)
@@ -137,11 +137,11 @@ class StockEncoder(nn.Module):
 class MarketEncoder(nn.Module):
     def __init__(
             self,
-            input_dim: int = 5,
+            input_dim: int = 24,
             embed_dim: int = 128,
-            num_layers: int = 1,
-            num_heads: int = 4,
-            ff_hidden_dim: int = 128,
+            num_layers: int = 3,
+            num_heads: int = 8,
+            ff_hidden_dim: int = 256,
             dropout: float = 0.1
     ):
         super().__init__()
@@ -174,13 +174,13 @@ class Fusion(nn.Module):
     def __init__(
             self,
             fusion_type: str = 'concat',
-            stock_input_dim: int = 5,
-            market_input_dim: int = 4,
+            stock_input_dim: int = 22,
+            market_input_dim: int = 24,
             embed_dim: int = 128,
-            num_layers: int = 1,
-            num_heads: int = 4,
+            num_layers: int = 3,
+            num_heads: int = 8,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 128
+            ff_hidden_dim: int = 256
     ):
         super().__init__()
         self.fusion_type = fusion_type
@@ -239,7 +239,7 @@ class Fusion(nn.Module):
 class PredictionHead(nn.Module):
     def __init__(
             self,
-            prediction_type: str = 'last',
+            prediction_type: str = 'attn_pool',
             embed_dim: int = 128,
             hidden_dim: int = 64,
             dropout: float = 0.1
@@ -279,18 +279,18 @@ class PredictionHead(nn.Module):
         return x
 
 
-class ReturnsModel(nn.Module):
+class MCST(nn.Module):
     def __init__(
             self,
-            fusion_type: str = 'concat',
-            prediction_type: str = 'last',
-            stock_input_dim: int = 5,
-            market_input_dim: int = 4,
+            fusion_type: str = 'cross_attn',
+            prediction_type: str = 'attn_pool',
+            stock_input_dim: int = 22,
+            market_input_dim: int = 24,
             embed_dim: int = 128,
-            num_layers: int = 1,
-            num_heads: int = 4,
+            num_layers: int = 3,
+            num_heads: int = 8,
             dropout: float = 0.1,
-            ff_hidden_dim: int = 128
+            ff_hidden_dim: int = 256
     ):
         super().__init__()
         self.fusion = Fusion(

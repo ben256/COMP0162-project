@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
 from data_processing.dataset import CustomDataset
-from model.model import ReturnsModel
+from model.mcst import MCST
 from training.utils import create_training_folder, setup_logging
 
 
@@ -45,7 +45,7 @@ class EarlyStopping:
             self,
             patience: int = 5,
             delta: float = 0.0,
-            offset: int = 20,
+            offset: int = 5,
             verbose: bool = False,
             logger = None,
     ):
@@ -89,18 +89,20 @@ class EarlyStopping:
 
 
 def train(
-        batch_size: int = 128,
-        learning_rate: float = 1e-5,
+        batch_size: int = 200,
+        learning_rate: float = 5e-6,
         num_training_epochs: int = 100,
         num_warmup_epochs: int = 5,
         fusion_type: str = 'cross_attn',
         early_stopping_patience: int = 5,
-        early_stopping_delta: float = 1e-4,
-        early_stopping_offset: int = 20,
+        early_stopping_delta: float = 0.0,
+        early_stopping_offset: int = 5,
         shuffle_train_data: bool = True,
         dropout: float = 0.1,
-        num_layers: int = 2,
-        num_heads: int = 4,
+        num_layers: int = 3,
+        num_heads: int = 8,
+        embed_dim: int = 128,
+        ff_hidden_dim: int = 256,
         prediction_type: str = 'attn_pool',
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
@@ -119,16 +121,16 @@ def train(
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train_data)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
-    model = ReturnsModel(
+    model = MCST(
         fusion_type=fusion_type,
         prediction_type=prediction_type,
-        stock_input_dim=5,
-        market_input_dim=4,
-        embed_dim=128,
+        stock_input_dim=22,
+        market_input_dim=24,
+        embed_dim=embed_dim,
         num_layers=num_layers,
         num_heads=num_heads,
         dropout=dropout,
-        ff_hidden_dim=256
+        ff_hidden_dim=ff_hidden_dim
     )
     model.to(device)
 
@@ -155,6 +157,8 @@ def train(
     logger.info(f"Dropout: {dropout}")
     logger.info(f"Number of transformer layers: {num_layers}")
     logger.info(f"Number of attention heads: {num_heads}")
+    logger.info(f"Embedding dimension: {embed_dim}")
+    logger.info(f"Feedforward hidden dimension: {ff_hidden_dim}")
     logger.info(f"Prediction type: {prediction_type}")
     logger.info(f"Fusion type: {fusion_type}")
     logger.info(f"Dataset path: {dataset_path}")
@@ -242,5 +246,5 @@ def train(
     logger.info(f"Training complete. Final model saved to: {final_model_path}")
 
 
-if __name__ == '__main__':
-    train()
+# if __name__ == '__main__':
+#     train()

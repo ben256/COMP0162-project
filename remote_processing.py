@@ -1,7 +1,7 @@
 import logging
 import argparse
 
-from data_processing.create_datasets2 import create_datasets
+from data_processing.create_datasets import create_datasets
 from data_processing.process_market_data import process_market_data
 from data_processing.process_stock_data import fetch_data
 
@@ -18,17 +18,21 @@ def main():
                         help='Path to the market data directory')
     parser.add_argument('--dataset_path', type=str, default='./data/datasets',
                         help='Path to the output dataset directory')
+    parser.add_argument('--save_csv', type=bool, default=False,
+                        help='Save datasets to CSV files prior to windows.')
+
     args = parser.parse_args()
 
     # process_market_data()  # Already on GitHub
-    fetch_data(
-        reference_data_path=args.reference_data_path,
-        stock_data_path=args.stock_data_path
-    )
+    # fetch_data(
+    #     reference_data_path=args.reference_data_path,
+    #     stock_data_path=args.stock_data_path
+    # )
     create_datasets(
         stock_data_path=args.stock_data_path,
         market_data_path=args.market_data_path,
-        dataset_path=args.dataset_path
+        dataset_path=args.dataset_path,
+        save_csv=args.save_csv
     )
 
 if __name__ == '__main__':

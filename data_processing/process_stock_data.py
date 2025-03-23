@@ -38,6 +38,7 @@ def fetch_data(
 
     to_fetch = []
     fetched = []
+    fetched_symbols = []
     stock_count = 0
 
     # Check if stock data is already downloaded
@@ -86,15 +87,23 @@ def fetch_data(
                     'Volume': 'volume'
                 }, axis=1, inplace=True)
 
+                symbol_data['volume'].replace(to_replace=0, method='ffill', inplace=True)
+
                 fetched.append(symbol_data)
+                fetched_symbols.append(symbol)
                 stock_count += 1
             else:
                 logging.warning(f'Not enough data for {symbol}, skipping')
 
     if fetched:
         logging.info(f'Fetched data for {len(fetched)} stocks')
+        logging.info(f'Symbols fetched: {fetched_symbols}')
         logging.info(f'Saving data to CSV')
         stock_data = pd.concat([stock_data] + fetched, ignore_index=True)
         stock_data.to_csv(f'{stock_data_path}/stock_data.csv', index=False, date_format='%Y-%m-%d')
     else:
         logging.info('No new data fetched')
+
+
+# if __name__ == '__main__':
+#     fetch_data()
