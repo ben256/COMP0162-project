@@ -264,9 +264,9 @@ def create_datasets_exp(
 
     # ----- Optionally Save CSVs -----
     if save_csv:
-        train_norm.to_csv(f'{dataset_path}/train2.csv', index=False)
-        validation_norm.to_csv(f'{dataset_path}/validation2.csv', index=False)
-        test_norm.to_csv(f'{dataset_path}/test2.csv', index=False)
+        train_norm.to_csv(f'{dataset_path}/train.csv', index=False)
+        validation_norm.to_csv(f'{dataset_path}/validation.csv', index=False)
+        test_norm.to_csv(f'{dataset_path}/test.csv', index=False)
 
     # ----- Create Sliding Windows -----
     train_windows = create_windows(train_norm, window_length)
@@ -274,9 +274,9 @@ def create_datasets_exp(
     test_windows = create_windows(test_norm, window_length)
 
     # Save the datasets as .npy files
-    np.save(f'{dataset_path}/train2.npy', train_windows)
-    np.save(f'{dataset_path}/validation2.npy', validation_windows)
-    np.save(f'{dataset_path}/test2.npy', test_windows)
+    np.save(f'{dataset_path}/train.npy', train_windows)
+    np.save(f'{dataset_path}/validation.npy', validation_windows)
+    np.save(f'{dataset_path}/test.npy', test_windows)
 
     return train_norm, validation_norm, test_norm
 
