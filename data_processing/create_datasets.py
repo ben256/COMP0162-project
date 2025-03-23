@@ -150,7 +150,7 @@ def create_datasets(
     np.save(f'{dataset_path}/test.npy', test_windows)
 
 
-def create_datasets_legacy(
+def create_datasets_exp(
         window_length: int = 60,
         validation_length: str = '1y',
         test_length: str = '1y',
@@ -161,82 +161,125 @@ def create_datasets_legacy(
         dataset_path: str = '../data/datasets',
         save_csv: bool = False
 ):
+    import pandas as pd
+    import numpy as np
+
     # Load raw CSVs
-    stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')
-    market_data = pd.read_csv(f'{market_data_path}/market_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')
+    stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv',
+                             parse_dates=['date'], date_format='%Y-%m-%d')
+    market_data = pd.read_csv(f'{market_data_path}/market_data.csv',
+                              parse_dates=['date'], date_format='%Y-%m-%d')
 
     # Ensure data is sorted by date
-    stock_data.sort_values(by='date', inplace=True)
-    market_data.sort_values(by='date', inplace=True)
+    stock_data.sort_values(by='date', ascending=True, inplace=True)
+    market_data.sort_values(by='date', ascending=True, inplace=True)
 
-    # Process stock features
-    processed_stock_features = []
+    # Set rolling window sizes
+    windows = [int(window_length/12), int(window_length/6),
+               int(window_length/3), int(window_length/2), window_length]
+
+    # ----- Process Market Data -----
+    # Rename columns for consistency
+    market_data.rename(columns={'spx_price': 'returns', 'spx_vol': 'volume'}, inplace=True)
+    # Convert market features to relative changes (e.g., daily returns)
+    market_data[['returns', 'volume', 'vix', 'cor1m']] = market_data[['returns', 'volume', 'vix', 'cor1m']].pct_change()
+
+    # Calculate rolling features for the market data
+    for window in windows:
+        market_data[f'returns_ma_{window}'] = market_data['returns'].rolling(window=window, min_periods=window).mean()
+        market_data[f'returns_std_{window}'] = market_data['returns'].rolling(window=window, min_periods=window).std()
+        market_data[f'volume_ma_{window}'] = market_data['volume'].rolling(window=window, min_periods=window).mean()
+        market_data[f'volume_std_{window}'] = market_data['volume'].rolling(window=window, min_periods=window).std()
+
+    # We'll keep the raw market features (other than date)
+    market_feature_cols = [col for col in market_data.columns if col != 'date']
+    market_features = market_data[['date'] + market_feature_cols]
+
+    # ----- Process Stock Data -----
+    stock_features_list = []
     for symbol, data in stock_data.groupby('symbol'):
-        data = data.copy()  # Work on a copy to avoid warnings.
-        data['returns'] = data['close'].pct_change()
-        data['high_low_spread'] = data['high'] - data['low']
-        data['close_open_spread'] = data['close'] - data['open']
-        data['ma10'] = data['close'].rolling(window=10).mean()
-        data['momentum'] = data['close'] - data['ma10']
-        data['target'] = data['returns'].shift(-1)
-        data['target_sign'] = np.where(data['target'] > 0, 1, 0)
-        data.drop(columns=['close', 'high', 'low', 'open', 'ma10'], inplace=True)
+        # Compute percentage changes on OHLC and volume (making the series more stationary)
+        data[['open', 'high', 'low', 'close', 'volume']] = data[['open', 'high', 'low', 'close', 'volume']].pct_change()
+        # Rename close to returns
+        data.rename({'close': 'returns'}, axis=1, inplace=True)
+
+        # Calculate rolling features for each stock
+        for window in windows:
+            data[f'returns_ma_{window}'] = data['returns'].rolling(window=window, min_periods=window).mean()
+            data[f'returns_std_{window}'] = data['returns'].rolling(window=window, min_periods=window).std()
+            data[f'volume_ma_{window}'] = data['volume'].rolling(window=window, min_periods=window).mean()
+            data[f'volume_std_{window}'] = data['volume'].rolling(window=window, min_periods=window).std()
+
         data.dropna(inplace=True)
-        processed_stock_features.append(data)
-    processed_stock_features = pd.concat(processed_stock_features)
+        stock_features_list.append(data)
 
-    # Process market features
-    market_data['spx_returns'] = market_data['spx_price'].pct_change()
-    market_data.drop(columns=['spx_price'], inplace=True)
-    market_data.dropna(inplace=True)
-    processed_market_features = market_data
+    stock_features = pd.concat(stock_features_list)
+    stock_features.dropna(inplace=True)
 
-    # Merge the processed stock and market features
-    features = processed_stock_features.merge(processed_market_features, on='date')
-    features = features[['date', 'symbol', 'volume', 'returns', 'high_low_spread', 'close_open_spread',
-                         'momentum', 'spx_returns', 'spx_vol', 'vix', 'cor1m', 'target', 'target_sign']]
+    # For stock features, define the columns to use (exclude raw OHLC)
+    stock_feature_cols = [col for col in stock_features.columns
+                          if col not in ['date', 'symbol', 'open', 'high', 'low', 'close']]
+
+    # ----- Merge Market and Stock Features -----
+    # Append suffixes to differentiate stock and market features
+    features = stock_features.merge(market_features, on='date', suffixes=('_stock', '_market'))
     features.sort_values(by='date', inplace=True)
 
-    # Convert date strings to datetime objects for splitting
+    # Compute target from stock returns (using raw returns; normalization will come later)
+    features['target'] = features.groupby('symbol')['returns_stock'].shift(-1)
+    features['target_sign'] = np.where(features['target'] > 0, 1, 0)
+    features.dropna(inplace=True)
+
+    # ----- Split into Train, Validation, and Test -----
     start_date_dt = pd.to_datetime(start_date)
     end_date_dt = pd.to_datetime(end_date)
-
-    # Determine split dates using time offsets
+    # parse_time_offset should convert strings like '1y' into a pd.Timedelta or pd.DateOffset
     val_offset = parse_time_offset(validation_length)
     test_offset = parse_time_offset(test_length)
     test_start_date = end_date_dt - test_offset
     val_start_date = test_start_date - val_offset
 
-    # Split into train, validation, and test sets
     train = features[features['date'] < val_start_date].copy()
     validation = features[(features['date'] >= val_start_date) & (features['date'] < test_start_date)].copy()
     test = features[features['date'] >= test_start_date].copy()
 
-    # Identify numerical columns to scale (exclude date, symbol, and targets)
-    cols_to_scale = [col for col in features.columns if col not in ['date', 'symbol', 'target', 'target_sign']]
+    # ----- Normalize Features Using Training Set Statistics -----
+    # Identify columns to normalize: all except date, symbol, target, target_sign.
+    norm_cols = [col for col in features.columns if col not in ['date', 'symbol', 'target', 'target_sign']]
 
-    # Fit the scaler on the training set only
-    scaler = StandardScaler()
-    train[cols_to_scale] = scaler.fit_transform(train[cols_to_scale])
-    # Transform the validation and test sets using the same scaler
-    validation[cols_to_scale] = scaler.transform(validation[cols_to_scale])
-    test[cols_to_scale] = scaler.transform(test[cols_to_scale])
+    # Compute training set mean and std for each column
+    train_means = train[norm_cols].mean()
+    train_stds = train[norm_cols].std()
 
+    def normalize_df(df, cols, means, stds):
+        df_norm = df.copy()
+        for col in cols:
+            df_norm[col] = (df_norm[col] - means[col]) / stds[col]
+            df_norm[col] = df_norm[col].clip(lower=-3, upper=3)
+        return df_norm
+
+    train_norm = normalize_df(train, norm_cols, train_means, train_stds)
+    validation_norm = normalize_df(validation, norm_cols, train_means, train_stds)
+    test_norm = normalize_df(test, norm_cols, train_means, train_stds)
+
+    # ----- Optionally Save CSVs -----
     if save_csv:
-        train.to_csv(f'{dataset_path}/train.csv', index=False)
-        validation.to_csv(f'{dataset_path}/validation.csv', index=False)
-        test.to_csv(f'{dataset_path}/test.csv', index=False)
+        train_norm.to_csv(f'{dataset_path}/train2.csv', index=False)
+        validation_norm.to_csv(f'{dataset_path}/validation2.csv', index=False)
+        test_norm.to_csv(f'{dataset_path}/test2.csv', index=False)
 
-    # Create sliding windows for each dataset
-    train_windows = create_windows(train, cols_to_scale, window_length)
-    validation_windows = create_windows(validation, cols_to_scale, window_length)
-    test_windows = create_windows(test, cols_to_scale, window_length)
+    # ----- Create Sliding Windows -----
+    train_windows = create_windows(train_norm, window_length)
+    validation_windows = create_windows(validation_norm, window_length)
+    test_windows = create_windows(test_norm, window_length)
 
-    # Save the datasets
-    np.save(f'{dataset_path}/train.npy', train_windows)
-    np.save(f'{dataset_path}/validation.npy', validation_windows)
-    np.save(f'{dataset_path}/test.npy', test_windows)
+    # Save the datasets as .npy files
+    np.save(f'{dataset_path}/train2.npy', train_windows)
+    np.save(f'{dataset_path}/validation2.npy', validation_windows)
+    np.save(f'{dataset_path}/test2.npy', test_windows)
+
+    return train_norm, validation_norm, test_norm
+
 
 # if __name__ == '__main__':
-#     format_data()
 #     create_datasets()
