@@ -21,7 +21,7 @@ def setup_logging(log_dir='../logs', log_file='training.log'):
     logger.setLevel(logging.INFO)
 
     # Format for logs
-    formatter = logging.Formatter('%(name)s - %(levelname)s - %(filename)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s')
 
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
