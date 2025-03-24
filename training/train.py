@@ -104,6 +104,7 @@ def train(
         num_heads: int = 8,
         embed_dim: int = 256,
         ff_hidden_dim: int = 512,
+        lr_scheduler_type: str = 'cosine',
         prediction_type: str = 'attn_pool',
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
@@ -137,7 +138,12 @@ def train(
 
     loss_function = nn.MSELoss()
     optimiser = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = get_cosine_schedule_with_warmup(optimiser, num_warmup_epochs, num_training_epochs)
+    if lr_scheduler_type == 'cosine':
+        scheduler = get_cosine_schedule_with_warmup(optimiser, num_warmup_epochs, num_training_epochs)
+    elif lr_scheduler_type == 'plateau':
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.3, patience=5, threshold=5e-5, verbose=True)
+    else:
+        raise ValueError(f"Invalid learning rate scheduler type: {lr_scheduler_type}")
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
@@ -163,6 +169,7 @@ def train(
     logger.info(f"Feedforward hidden dimension: {ff_hidden_dim}")
     logger.info(f"Prediction type: {prediction_type}")
     logger.info(f"Fusion type: {fusion_type}")
+    logger.info(f"Learning rate scheduler type: {lr_scheduler_type}")
     logger.info(f"Dataset path: {dataset_path}")
     logger.info(f"Output directory: {output_dir}")
 
@@ -210,7 +217,10 @@ def train(
             logger.info(f"Validation: Average loss: {avg_val_loss:.8f}")
 
             # Step the learning rate scheduler with the validation loss
-            scheduler.step()
+            if lr_scheduler_type == 'cosine':
+                scheduler.step()
+            elif lr_scheduler_type == 'plateau':
+                scheduler.step(avg_val_loss)
 
             with open(f'{output_dir}/loss.json', 'w') as f:
                 json.dump({'train': train_loss_history, 'validation': validation_loss_history}, f)

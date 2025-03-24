@@ -130,6 +130,7 @@ def create_datasets(
     val_start_date = test_start_date - val_offset
 
     # Split into train, validation, and test sets
+    features.dropna(axis=0, inplace=True)
     train = features[features['date'] < val_start_date].copy()
     validation = features[(features['date'] >= val_start_date) & (features['date'] < test_start_date)].copy()
     test = features[features['date'] >= test_start_date].copy()
