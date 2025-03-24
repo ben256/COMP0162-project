@@ -91,18 +91,19 @@ class EarlyStopping:
 def train(
         batch_size: int = 200,
         learning_rate: float = 5e-6,
-        num_training_epochs: int = 100,
+        num_training_epochs: int = 20,
         num_warmup_epochs: int = 5,
         fusion_type: str = 'cross_attn',
         early_stopping_patience: int = 5,
         early_stopping_delta: float = 0.0,
         early_stopping_offset: int = 5,
         shuffle_train_data: bool = True,
-        dropout: float = 0.1,
-        num_layers: int = 3,
+        weight_decay: float = 0.01,
+        dropout: float = 0.15,
+        num_layers: int = 5,
         num_heads: int = 8,
-        embed_dim: int = 128,
-        ff_hidden_dim: int = 256,
+        embed_dim: int = 256,
+        ff_hidden_dim: int = 512,
         prediction_type: str = 'attn_pool',
         dataset_path: str = '../data/datasets',
         output_dir: str = '../output'
@@ -135,8 +136,8 @@ def train(
     model.to(device)
 
     loss_function = nn.MSELoss()
-    optimiser = optim.AdamW(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=2, verbose=True)
+    optimiser = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    scheduler = get_cosine_schedule_with_warmup(optimiser, num_warmup_epochs, num_training_epochs)
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
@@ -154,6 +155,7 @@ def train(
     logger.info(f"Learning rate: {learning_rate}")
     logger.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
     logger.info(f"Shuffle training data: {shuffle_train_data}")
+    logger.info(f"Weight decay: {weight_decay}")
     logger.info(f"Dropout: {dropout}")
     logger.info(f"Number of transformer layers: {num_layers}")
     logger.info(f"Number of attention heads: {num_heads}")
@@ -208,7 +210,7 @@ def train(
             logger.info(f"Validation: Average loss: {avg_val_loss:.8f}")
 
             # Step the learning rate scheduler with the validation loss
-            scheduler.step(avg_val_loss)
+            scheduler.step()
 
             with open(f'{output_dir}/loss.json', 'w') as f:
                 json.dump({'train': train_loss_history, 'validation': validation_loss_history}, f)

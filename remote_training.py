@@ -35,6 +35,8 @@ def main():
                         help='Number of epochs before early stopping starts')
     parser.add_argument('--shuffle_train_data', type=bool, default=True,
                         help='Shuffle training data')
+    parser.add_argument('--weight_decay', type=float, default=0.05,
+                        help='Weight decay')
     parser.add_argument('--dropout', type=float, default=0.1,
                         help='Dropout rate')
     parser.add_argument('--num_layers', type=int, default=3,
@@ -50,7 +52,7 @@ def main():
           num_warmup_epochs=args.num_warmup_epochs, fusion_type=args.fusion_type, embed_dim=args.embed_dim,
           ff_hidden_dim=args.ff_hidden_dim, early_stopping_patience=args.early_stopping_patience,
           early_stopping_delta=args.early_stopping_delta, early_stopping_offset=args.early_stopping_offset,
-          shuffle_train_data=args.shuffle_train_data, dropout=args.dropout, num_layers=args.num_layers,
+          shuffle_train_data=args.shuffle_train_data, weight_decay=args.weight_decay, dropout=args.dropout, num_layers=args.num_layers,
           num_heads=args.num_heads, prediction_type=args.prediction_type, dataset_path=args.dataset_path,
           output_dir=args.output_dir
           )
