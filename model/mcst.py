@@ -241,14 +241,11 @@ class PredictionHead(nn.Module):
             self,
             prediction_type: str = 'attn_pool',
             embed_dim: int = 128,
-            hidden_dim: int = 64,
             dropout: float = 0.1
     ):
         super().__init__()
         self.prediction_type = prediction_type
-        self.fc1 = nn.Linear(embed_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, 1)
-        self.dropout = nn.Dropout(dropout)
+        self.fc1 = nn.Linear(embed_dim, 1)
 
         if self.prediction_type == 'attn_pool':
             self.attn_vector = nn.Linear(embed_dim, 1)
@@ -272,8 +269,6 @@ class PredictionHead(nn.Module):
             raise ValueError("Invalid prediction type")
 
         x = self.fc1(x_last)
-        x = self.dropout(x)
-        x = self.fc2(x)
         return x
 
 
