@@ -208,7 +208,7 @@ def train(
             logger.info(f"Validation: Average loss: {avg_val_loss:.8f}")
 
             # Step the learning rate scheduler with the validation loss
-            scheduler.step()
+            scheduler.step(avg_val_loss)
 
             with open(f'{output_dir}/loss.json', 'w') as f:
                 json.dump({'train': train_loss_history, 'validation': validation_loss_history}, f)
