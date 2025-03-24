@@ -156,7 +156,8 @@ def train(
     )
 
     logger.info("Starting training loop")
-    logger.info(f"Training for {num_training_epochs} epochs")
+    logger.info(f"Number of training epochs: {num_training_epochs}")
+    logger.info(f"Number of warmup epochs: {num_warmup_epochs}")
     logger.info(f"Batch size: {batch_size}")
     logger.info(f"Learning rate: {learning_rate}")
     logger.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
