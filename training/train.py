@@ -136,7 +136,7 @@ def train(
 
     loss_function = nn.MSELoss()
     optimiser = optim.AdamW(model.parameters(), lr=learning_rate)
-    scheduler = get_cosine_schedule_with_warmup(optimiser, num_warmup_epochs, num_training_epochs)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=2, verbose=True)
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
