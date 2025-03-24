@@ -72,11 +72,11 @@ class TransformerEncoderBlock(nn.Module):
             ff_hidden_dim: int = 256
     ):
         super().__init__()
-        self.norm1 = nn.LayerNorm(embed_dim)
         self.multi_head_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
+        self.norm1 = nn.LayerNorm(embed_dim)
         self.dropout1 = nn.Dropout(dropout)
+        self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim)
         self.norm2 = nn.LayerNorm(embed_dim)
-        self.ffn = PositionWiseFFN(embed_dim, ff_hidden_dim, dropout)
         self.dropout2 = nn.Dropout(dropout)
 
     def forward(self, x, mask=None):
@@ -87,14 +87,13 @@ class TransformerEncoderBlock(nn.Module):
         Returns:
             Tensor of shape (batch_size, sequence_length, embed_dim)
         """
-        x_norm = self.norm1(x)
-        attn_output, _ = self.multi_head_attention(x_norm, x_norm, x_norm, key_padding_mask=mask)
+        attn_output, _ = self.multi_head_attention(x, x, x, key_padding_mask=mask)
         x = x + self.dropout1(attn_output)
+        x = self.norm1(x)
 
-        # Pre-LN for the feedforward sub-layer
-        x_norm = self.norm2(x)
-        ffn_output = self.ffn(x_norm)
+        ffn_output = self.ffn(x)
         x = x + self.dropout2(ffn_output)
+        x = self.norm2(x)
 
         return x
 
