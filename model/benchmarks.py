@@ -12,6 +12,7 @@ class NullModel:
             stock_data = stock_data.cpu().numpy()
 
         returns_array = np.zeros_like(stock_data[:, -1, 0])
+
         return returns_array
 
 

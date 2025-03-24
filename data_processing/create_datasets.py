@@ -38,7 +38,7 @@ def create_datasets(
         stock_data_path: str = '../data/stock',
         market_data_path: str = '../data/market',
         dataset_path: str = '../data/datasets',
-        save_csv: bool = False
+        save_csv: bool = True
 ):
     # Load raw CSVs
     stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')

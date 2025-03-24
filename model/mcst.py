@@ -248,7 +248,6 @@ class PredictionHead(nn.Module):
         self.prediction_type = prediction_type
         self.fc1 = nn.Linear(embed_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, 1)
-        self.relu = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
 
         if self.prediction_type == 'attn_pool':
@@ -273,7 +272,6 @@ class PredictionHead(nn.Module):
             raise ValueError("Invalid prediction type")
 
         x = self.fc1(x_last)
-        x = self.relu(x)
         x = self.dropout(x)
         x = self.fc2(x)
         return x
