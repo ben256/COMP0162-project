@@ -201,7 +201,7 @@ class Fusion(nn.Module):
             dropout=dropout
         )
         self.linear_fusion = nn.Linear(embed_dim*2, embed_dim)
-        self.relu = nn.ReLU()
+        self.activation = nn.Tanh()
 
         if self.fusion_type == 'cross_attn':
             self.cross_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
@@ -221,7 +221,7 @@ class Fusion(nn.Module):
         if self.fusion_type == 'concat':
             out = torch.cat([x, y], -1)
             out = self.linear_fusion(out)
-            out = self.relu(out)
+            out = self.activation(out)
             return out
 
         elif self.fusion_type == 'cross_attn':
@@ -229,7 +229,7 @@ class Fusion(nn.Module):
             attn_output, _ = self.cross_attn(query=x, key=y, value=y)
             # Apply a residual connection with stock embeddings
             out = x + attn_output
-            out = self.relu(out)
+            out = self.activation(out)
             return out
 
         else:

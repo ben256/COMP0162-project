@@ -1,10 +1,12 @@
 import json
 import copy
+import logging
 import math
 import os
 
 import numpy as np
 import torch
+from sklearn.metrics import root_mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from torch import nn, optim
 
 from torch.utils.data import DataLoader
@@ -13,6 +15,49 @@ from torch.optim import lr_scheduler
 from data_processing.dataset import CustomDataset
 from model.mcst import MCST
 from training.utils import create_training_folder, setup_logging
+
+
+def directional_accuracy(targets, predictions):
+    """
+    Calculate the directional accuracy of the model.
+    """
+    predictions = np.array(predictions)
+    targets = np.array(targets)
+
+    pred_sign = np.sign(predictions)
+    target_sign = np.sign(targets)
+
+    return np.mean(pred_sign == target_sign)
+
+
+def evalute_model(
+        model,
+        dataloader,
+        device,
+):
+    predictions = []
+    targets = []
+
+    model.eval()
+
+    with torch.no_grad():
+        for stock, market, target in dataloader:
+            stock = stock.to(device)
+            market = market.to(device)
+            target = target.to(device)
+
+            output = model(stock, market)
+
+            if isinstance(output, torch.Tensor):
+                output = output.cpu().numpy()
+
+            if isinstance(target, torch.Tensor):
+                target = target.cpu().numpy()
+
+            predictions.append(output)
+            targets.append(target)
+
+    return predictions, targets
 
 
 def get_cosine_schedule_with_warmup(optimizer, num_warmup_epochs, num_training_epochs):
@@ -248,6 +293,25 @@ def train(
     # Optionally load the best model state (if early stopping was triggered)
     if early_stopping.best_model_state is not None:
         model.load_state_dict(early_stopping.best_model_state)
+
+    # run on test set
+    try:
+        test_dataset = CustomDataset(np.load(f'{dataset_path}/test.npy'))
+        test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+        predictions, targets = evalute_model(model, test_dataloader, device)
+        rmse = root_mean_squared_error(np.concatenate(targets), np.concatenate(predictions))
+        mae = mean_absolute_error(np.concatenate(targets), np.concatenate(predictions))
+        mape = mean_absolute_percentage_error(np.concatenate(targets), np.concatenate(predictions))
+        da = directional_accuracy(np.concatenate(targets), np.concatenate(predictions))
+
+        logger.info(f"Transformers model test metrics:")
+        logger.info(f"RMSE: {rmse:.6f}")
+        logger.info(f"MAE: {mae:.6f}")
+        logger.info(f"MAPE: {mape:.6f}")
+        logger.info(f"Directional accuracy: {da:.6f}")
+    except Exception as e:
+        logger.error('Error encountered while evaluating on test set')
+        logger.error(e)
 
     final_model_path = os.path.join(output_dir, 'best_model.pth')
     torch.save({
