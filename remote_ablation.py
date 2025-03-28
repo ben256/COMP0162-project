@@ -4,7 +4,7 @@ from training.ablation_training import run_ablation
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LSTM Training script with configurable paths.")
+    parser = argparse.ArgumentParser(description="Ablation studies.")
     parser.add_argument('--dataset_path', type=str, default='../data/datasets',
                         help='Path to the dataset directory')
     parser.add_argument('--output_base_dir', type=str, default='../output/ablation',

@@ -156,7 +156,10 @@ def train_model(model, train_dataloader, val_dataloader, config, device, output_
         'best_val_loss': best_val_loss,
         'final_rmse': rmses[-1],
         'final_mae': maes[-1],
-        'final_da': das[-1]
+        'final_da': das[-1],
+        'best_rmse': min(rmses),
+        'best_mae': min(maes),
+        'best_da': max(das)
     }
 
 
@@ -246,18 +249,18 @@ def run_ablation(
     logger.info("\n1. Fusion Type Comparison:")
     for fusion_type in fusion_types:
         result = results[f"fusion_{fusion_type}"]
-        logger.info(f"{fusion_type}: RMSE={result['final_rmse']:.6f}, MAE={result['final_mae']:.6f}, DA={result['final_da']:.6f}")
+        logger.info(f"{fusion_type}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
 
     logger.info("\n2. Prediction Type Comparison:")
     for pred_type in prediction_types:
         result = results[f"prediction_{pred_type}"]
-        logger.info(f"{pred_type}: RMSE={result['final_rmse']:.6f}, MAE={result['final_mae']:.6f}, DA={result['final_da']:.6f}")
+        logger.info(f"{pred_type}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
 
     logger.info("\n3. Market Context Comparison:")
     for use_market in market_contexts:
         context_name = "with_market" if use_market else "without_market"
         result = results[f"context_{context_name}"]
-        logger.info(f"{context_name}: RMSE={result['final_rmse']:.6f}, MAE={result['final_mae']:.6f}, DA={result['final_da']:.6f}")
+        logger.info(f"{context_name}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
 
 
 # if __name__ == '__main__':
