@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 
-from model.benchmarks import NullModel, NaiveModel
+from model.benchmarks import NullModel, NaiveModel, LSTMModel
 from model.mcst import MCST
 from data_processing.dataset import CustomDataset
 
@@ -64,29 +64,37 @@ def test(
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
 
-    best_model = torch.load('../output/remote/training_2/best_model.pth', map_location=torch.device('cpu'))
+    best_transformers_model = torch.load('../output/remote/training_6/best_model.pth', map_location=torch.device('cpu'))
+    best_lstm_model = torch.load('../output/lstm_training/remote/training_19/best_model.pth', map_location=torch.device('cpu'))
 
     test_dataset = CustomDataset(np.load(os.path.join(dataset_path, 'test.npy')))
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     null_model = NullModel()
     naive_model = NaiveModel()
+    lstm_model = LSTMModel(
+        stock_input_dim=22,
+        embed_dim=128,
+        num_layers=2,
+    )
+    lstm_model.load_state_dict(best_lstm_model['model_state_dict'])
+    lstm_model.eval()
     transformers_model = MCST(
         fusion_type = 'cross_attn',
         prediction_type = 'attn_pool',
         stock_input_dim = 22,
         market_input_dim = 24,
         embed_dim = 128,
-        num_layers = 4,
+        num_layers = 2,
         num_heads = 8,
         dropout = 0.1,
         ff_hidden_dim = 256
     )
-    transformers_model.load_state_dict(best_model['model_state_dict'])
+    transformers_model.load_state_dict(best_transformers_model['model_state_dict'])
     transformers_model.eval()
 
-    models = [null_model, naive_model, transformers_model]
-    model_names = ['Null', 'Naive', 'Transformers']
+    models = [null_model, naive_model, lstm_model, transformers_model]
+    model_names = ['Null', 'Naive', 'LSTM', 'Transformers']
     # models = [transformers_model]
     # model_names = ['Transformers']
 

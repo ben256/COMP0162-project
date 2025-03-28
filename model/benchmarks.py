@@ -56,3 +56,10 @@ class LSTMModel(nn.Module):
 
         output = self.fc_out(stock_features)
         return output
+
+    def predict(self, stock_data, market_data, targets=None):
+        stock_out, _ = self.stock_lstm(stock_data)
+        stock_features = stock_out[:, -1, :]  # Get the last time step
+
+        output = self.fc_out(stock_features)
+        return self.prediction_head(output)

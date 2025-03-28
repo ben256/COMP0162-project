@@ -153,7 +153,6 @@ def create_datasets(
     np.save(f'{dataset_path}/validation.npy', validation_windows)
     np.save(f'{dataset_path}/test.npy', test_windows)
 
-    return train_norm, validation_norm, test_norm
 
 
 # if __name__ == '__main__':
