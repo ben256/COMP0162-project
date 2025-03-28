@@ -160,7 +160,10 @@ def train_model(model, train_dataloader, val_dataloader, config, device, output_
     }
 
 
-def run_ablation():
+def run_ablation(
+        dataset_path: str = '../data/datasets',
+        output_base_dir: str = '../output/ablation'
+):
     torch.manual_seed(42)
     np.random.seed(42)
 
@@ -179,7 +182,6 @@ def run_ablation():
     logger.info(f"Using device: {device}")
 
     # Load datasets
-    dataset_path = '../data/datasets'
     train_dataset = CustomDataset(np.load(os.path.join(dataset_path, 'train.npy')))
     val_dataset = CustomDataset(np.load(os.path.join(dataset_path, 'validation.npy')))
 
@@ -187,7 +189,6 @@ def run_ablation():
     val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False)
 
     results = {}
-    output_base_dir = '../output/ablation'
 
     # 1. Fusion Type Ablation
     fusion_types = ['concat', 'cross-attn']
