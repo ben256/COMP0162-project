@@ -193,40 +193,7 @@ def run_ablation(
 
     results = {}
 
-    # 1. Fusion Type Ablation
-    fusion_types = ['concat', 'cross-attn']
-    for fusion_type in fusion_types:
-        logger.info(f"Running ablation for fusion type: {fusion_type}")
-        output_dir = os.path.join(output_base_dir, f"fusion_{fusion_type}")
-
-        model = FusionAblationModel(
-            fusion_type=fusion_type,
-            stock_input_dim=config['stock_input_dim'],
-            market_input_dim=config['market_input_dim'],
-            embed_dim=config['embed_dim'],
-            num_heads=config['num_heads']
-        )
-
-        result = train_model(model, train_dataloader, val_dataloader, config, device, output_dir)
-        results[f"fusion_{fusion_type}"] = result
-
-    # 2. Prediction Type Ablation
-    prediction_types = ['last', 'attn_pool']
-    for pred_type in prediction_types:
-        logger.info(f"Running ablation for prediction type: {pred_type}")
-        output_dir = os.path.join(output_base_dir, f"prediction_{pred_type}")
-
-        model = PredictionTypeAblationModel(
-            prediction_type=pred_type,
-            stock_input_dim=config['stock_input_dim'],
-            market_input_dim=config['market_input_dim'],
-            embed_dim=config['embed_dim']
-        )
-
-        result = train_model(model, train_dataloader, val_dataloader, config, device, output_dir)
-        results[f"prediction_{pred_type}"] = result
-
-    # 3. Market Context Ablation
+    # 1. Market Context Ablation
     market_contexts = [True, False]
     for use_market in market_contexts:
         context_name = "with_market" if use_market else "without_market"
@@ -243,8 +210,47 @@ def run_ablation(
         result = train_model(model, train_dataloader, val_dataloader, config, device, output_dir)
         results[f"context_{context_name}"] = result
 
+    # 2. Fusion Type Ablation
+    fusion_types = ['concat', 'cross-attn']
+    for fusion_type in fusion_types:
+        logger.info(f"Running ablation for fusion type: {fusion_type}")
+        output_dir = os.path.join(output_base_dir, f"fusion_{fusion_type}")
+
+        model = FusionAblationModel(
+            fusion_type=fusion_type,
+            stock_input_dim=config['stock_input_dim'],
+            market_input_dim=config['market_input_dim'],
+            embed_dim=config['embed_dim'],
+            num_heads=config['num_heads']
+        )
+
+        result = train_model(model, train_dataloader, val_dataloader, config, device, output_dir)
+        results[f"fusion_{fusion_type}"] = result
+
+    # 3. Prediction Type Ablation
+    prediction_types = ['last', 'attn_pool']
+    for pred_type in prediction_types:
+        logger.info(f"Running ablation for prediction type: {pred_type}")
+        output_dir = os.path.join(output_base_dir, f"prediction_{pred_type}")
+
+        model = PredictionTypeAblationModel(
+            prediction_type=pred_type,
+            stock_input_dim=config['stock_input_dim'],
+            market_input_dim=config['market_input_dim'],
+            embed_dim=config['embed_dim']
+        )
+
+        result = train_model(model, train_dataloader, val_dataloader, config, device, output_dir)
+        results[f"prediction_{pred_type}"] = result
+
     # Summarize results
     logger.info("\n========== ABLATION STUDY RESULTS ==========")
+
+    logger.info("\n3. Market Context Comparison:")
+    for use_market in market_contexts:
+        context_name = "with_market" if use_market else "without_market"
+        result = results[f"context_{context_name}"]
+        logger.info(f"{context_name}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
 
     logger.info("\n1. Fusion Type Comparison:")
     for fusion_type in fusion_types:
@@ -255,12 +261,6 @@ def run_ablation(
     for pred_type in prediction_types:
         result = results[f"prediction_{pred_type}"]
         logger.info(f"{pred_type}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
-
-    logger.info("\n3. Market Context Comparison:")
-    for use_market in market_contexts:
-        context_name = "with_market" if use_market else "without_market"
-        result = results[f"context_{context_name}"]
-        logger.info(f"{context_name}: RMSE={result['best_rmse']:.6f}, MAE={result['best_mae']:.6f}, DA={result['best_da']:.6f}")
 
 
 # if __name__ == '__main__':

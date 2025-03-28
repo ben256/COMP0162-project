@@ -102,7 +102,7 @@ class PredictionTypeAblationModel(nn.Module):
 class MarketContextAblationModel(nn.Module):
     def __init__(
             self,
-            include_market_context: bool = False,
+            include_market_context: bool = True,
             stock_input_dim: int = 22,
             market_input_dim: int = 24,
             embed_dim: int = 128
@@ -113,17 +113,20 @@ class MarketContextAblationModel(nn.Module):
         self.stock_encoder = SimpleEncoder(stock_input_dim, embed_dim)
         if include_market_context:
             self.market_encoder = SimpleEncoder(market_input_dim, embed_dim)
+            self.fusion = SimpleFusion(embed_dim)
 
-        self.fusion = SimpleFusion(embed_dim)
         self.prediction_head = nn.Linear(embed_dim, 1)
 
     def forward(self, stock_data, market_data):
+        stock_emb = self.stock_encoder(stock_data)
+
         if self.include_market_context:
-            stock_emb = self.stock_encoder(stock_data)
             market_emb = self.market_encoder(market_data)
             output = self.fusion(stock_emb, market_emb)
         else:
-            output = self.stock_encoder(stock_data)
+            output = stock_emb
 
-        return self.prediction_head(output)
+        output_last = output[:, -1, :]
+
+        return self.prediction_head(output_last)
 
