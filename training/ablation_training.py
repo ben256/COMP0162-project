@@ -260,5 +260,5 @@ def run_ablation(
         logger.info(f"{context_name}: RMSE={result['final_rmse']:.6f}, MAE={result['final_mae']:.6f}, DA={result['final_da']:.6f}")
 
 
-if __name__ == '__main__':
-    run_ablation()
+# if __name__ == '__main__':
+#     run_ablation()
