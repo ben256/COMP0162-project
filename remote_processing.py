@@ -1,7 +1,7 @@
 import logging
 import argparse
 
-from data_processing.create_datasets import create_datasets, create_datasets_exp
+from data_processing.create_datasets import create_datasets
 from data_processing.process_market_data import process_market_data
 from data_processing.process_stock_data import fetch_data
 
@@ -28,7 +28,7 @@ def main():
     #     reference_data_path=args.reference_data_path,
     #     stock_data_path=args.stock_data_path
     # )
-    create_datasets_exp(
+    create_datasets(
         stock_data_path=args.stock_data_path,
         market_data_path=args.market_data_path,
         dataset_path=args.dataset_path,

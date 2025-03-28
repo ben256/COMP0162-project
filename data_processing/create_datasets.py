@@ -2,7 +2,6 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 
 from data_processing.utils import parse_time_offset
 
@@ -38,133 +37,8 @@ def create_datasets(
         stock_data_path: str = '../data/stock',
         market_data_path: str = '../data/market',
         dataset_path: str = '../data/datasets',
-        save_csv: bool = True
-):
-    # Load raw CSVs
-    stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')
-    market_data = pd.read_csv(f'{market_data_path}/market_data.csv', parse_dates=['date'], date_format='%Y-%m-%d')
-
-    # Ensure data is sorted by date
-    stock_data.sort_values(by='date', ascending=True, inplace=True)
-    market_data.sort_values(by='date', ascending=True, inplace=True)
-
-    # Set rolling window sizes
-    windows = [int(window_length/12), int(window_length/6), int(window_length/3), int(window_length/2), window_length]
-
-    # Rename columns
-    market_data.rename(columns={'spx_price': 'returns', 'spx_vol': 'volume'}, inplace=True)
-
-    # Convert market features to relative
-    market_data[['returns', 'volume', 'vix', 'cor1m']] = market_data[['returns', 'volume', 'vix', 'cor1m']].pct_change()
-
-    # Calculate features over different windows
-    for window in windows:
-        market_data[f'returns_ma_{window}'] = market_data['returns'].rolling(window=window, min_periods=window).mean()
-        market_data[f'returns_std_{window}'] = market_data['returns'].rolling(window=window, min_periods=window).std()
-        market_data[f'volume_ma_{window}'] = market_data['volume'].rolling(window=window, min_periods=window).mean()
-        market_data[f'volume_std_{window}'] = market_data['volume'].rolling(window=window, min_periods=window).std()
-
-    feature_cols = market_data.columns.to_list()
-    feature_cols.remove('date')
-
-    for col in feature_cols:
-        mean = market_data[col].mean()
-        std = market_data[col].std()
-        market_data[f'z_{col}'] = (market_data[col] - mean) / std
-        # Clip Z-scores to be within [-3, 3]
-        market_data[f'z_{col}'] = market_data[f'z_{col}'].clip(lower=-3, upper=3)
-
-    market_features = market_data[['date'] + [x for x in market_data.columns.to_list() if x.startswith('z_')]]
-    # market_features.columns = pd.Index(['date']).append(market_features.columns[1:].str[2:])
-
-    # Process stock data
-    stock_features_list = []
-    for symbol, data in stock_data.groupby('symbol'):
-        data[['open', 'high', 'low', 'close', 'volume']] = data[['open', 'high', 'low', 'close', 'volume']].pct_change()
-        data.rename({'close': 'returns'}, axis=1, inplace=True)
-
-        for window in windows:
-            data[f'returns_ma_{window}'] = data['returns'].rolling(window=window, min_periods=window).mean()
-            data[f'returns_std_{window}'] = data['returns'].rolling(window=window, min_periods=window).std()
-            data[f'volume_ma_{window}'] = data['volume'].rolling(window=window, min_periods=window).mean()
-            data[f'volume_std_{window}'] = data['volume'].rolling(window=window, min_periods=window).std()
-
-        data.dropna(inplace=True)
-
-        stock_features_list.append(data)
-
-    stock_features = pd.concat(stock_features_list)
-    stock_features.dropna(inplace=True)
-
-    feature_cols = stock_features.columns.to_list()
-    feature_cols = [x for x in feature_cols if x not in ['date', 'symbol', 'open', 'high', 'low', 'close']]
-
-    for col in feature_cols:
-        mean = stock_features[col].mean()
-        std = stock_features[col].std()
-        stock_features[f'z_{col}'] = (stock_features[col] - mean) / std
-        # Clip Z-scores to be within [-3, 3]
-        stock_features[f'z_{col}'] = stock_features[f'z_{col}'].clip(lower=-3, upper=3)
-
-    for symbol, data in stock_features.groupby('symbol'):
-        data['target'] = data['z_returns'].shift(-1)
-        data['target_sign'] = np.where(data['target'] > 0, 1, 0)
-        stock_features.loc[data.index, 'target'] = data['target']
-        stock_features.loc[data.index, 'target_sign'] = data['target_sign']
-
-    targets = stock_features[['date', 'symbol', 'target', 'target_sign']]
-    stock_features = stock_features[['date', 'symbol'] + [x for x in stock_features.columns.to_list() if x.startswith('z_')]]
-
-    features = stock_features.merge(market_features, on='date', suffixes=('_stock', '_market'))
-    features = features.merge(targets, on=['date', 'symbol'])  # Ensure targets are the last two dimensions
-    features.sort_values(by='date', inplace=True)
-
-    # Convert date strings to datetime objects for splitting
-    start_date_dt = pd.to_datetime(start_date)
-    end_date_dt = pd.to_datetime(end_date)
-
-    # Determine split dates using time offsets
-    val_offset = parse_time_offset(validation_length)
-    test_offset = parse_time_offset(test_length)
-    test_start_date = end_date_dt - test_offset
-    val_start_date = test_start_date - val_offset
-
-    # Split into train, validation, and test sets
-    features.dropna(axis=0, inplace=True)
-    train = features[features['date'] < val_start_date].copy()
-    validation = features[(features['date'] >= val_start_date) & (features['date'] < test_start_date)].copy()
-    test = features[features['date'] >= test_start_date].copy()
-
-    if save_csv:
-        train.to_csv(f'{dataset_path}/train.csv', index=False)
-        validation.to_csv(f'{dataset_path}/validation.csv', index=False)
-        test.to_csv(f'{dataset_path}/test.csv', index=False)
-
-    # Create sliding windows for each dataset
-    train_windows = create_windows(train, window_length)
-    validation_windows = create_windows(validation, window_length)
-    test_windows = create_windows(test, window_length)
-
-    # Save the datasets
-    np.save(f'{dataset_path}/train.npy', train_windows)
-    np.save(f'{dataset_path}/validation.npy', validation_windows)
-    np.save(f'{dataset_path}/test.npy', test_windows)
-
-
-def create_datasets_exp(
-        window_length: int = 60,
-        validation_length: str = '1y',
-        test_length: str = '1y',
-        start_date: str = '2015-01-01',
-        end_date: str = '2025-01-01',
-        stock_data_path: str = '../data/stock',
-        market_data_path: str = '../data/market',
-        dataset_path: str = '../data/datasets',
         save_csv: bool = False
 ):
-    import pandas as pd
-    import numpy as np
-
     # Load raw CSVs
     stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv',
                              parse_dates=['date'], date_format='%Y-%m-%d')

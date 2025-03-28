@@ -3,12 +3,11 @@ import os
 import torch
 import numpy as np
 from matplotlib import pyplot as plt
-from torch import nn
 from torch.utils.data import DataLoader
 
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 
-from model.benchmarks import NullModel, NaiveModel, ARIMAModel
+from model.benchmarks import NullModel, NaiveModel
 from model.model import ReturnsModel
 from data_processing.dataset import CustomDataset
 

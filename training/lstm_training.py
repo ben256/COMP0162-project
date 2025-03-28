@@ -1,6 +1,5 @@
 import json
 import copy
-import math
 import os
 
 import numpy as np
@@ -12,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
 from data_processing.dataset import CustomDataset
-from model.mcst import MCST
+from model.benchmarks import LSTMModel
 from training.utils import create_training_folder, setup_logging
 
 
@@ -57,31 +56,6 @@ def evaluate_model(
             targets.append(target)
 
     return predictions, targets
-
-
-def get_cosine_schedule_with_warmup(optimizer, num_warmup_epochs, num_training_epochs):
-    """
-    Creates a schedule with a learning rate that increases linearly during the warmup period,
-    then decays following a cosine function.
-
-    Args:
-        optimizer: The optimizer for which to schedule the learning rate.
-        num_warmup_epochs: The number of epochs to linearly increase the LR.
-        num_training_epochs: Total number of epochs for training.
-
-    Returns:
-        A LambdaLR scheduler.
-    """
-    def lr_lambda(current_epoch):
-        if current_epoch < num_warmup_epochs:
-            # Linear warmup: current_epoch / num_warmup_epochs
-            return float(current_epoch) / float(max(1, num_warmup_epochs))
-        else:
-            # Cosine annealing: progress runs from 0 to 1 over the remaining epochs.
-            progress = float(current_epoch - num_warmup_epochs) / float(max(1, num_training_epochs - num_warmup_epochs))
-            return 0.5 * (1.0 + math.cos(math.pi * progress))
-
-    return lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 
 class EarlyStopping:
@@ -133,30 +107,24 @@ class EarlyStopping:
 
 
 def train(
-        batch_size: int = 200,
-        learning_rate: float = 5e-6,
-        num_training_epochs: int = 20,
-        num_warmup_epochs: int = 5,
-        fusion_type: str = 'cross_attn',
+        batch_size: int = 64,
+        learning_rate: float = 0.001,
+        num_training_epochs: int = 50,
         early_stopping_patience: int = 5,
         early_stopping_delta: float = 0.0,
         early_stopping_offset: int = 5,
         shuffle_train_data: bool = True,
         weight_decay: float = 0.01,
-        dropout: float = 0.15,
-        num_layers: int = 5,
-        num_heads: int = 8,
-        embed_dim: int = 256,
-        ff_hidden_dim: int = 512,
-        lr_scheduler_type: str = 'cosine',
-        prediction_type: str = 'attn_pool',
+        dropout: float = 0.1,
+        num_layers: int = 2,
+        embed_dim: int = 128,
         dataset_path: str = '../data/datasets',
-        output_dir: str = '../output'
+        output_dir: str = '../output/lstm_training',
 ):
     output_dir = create_training_folder(output_dir)
     checkpoint_dir = os.path.join(output_dir, 'checkpoints')
     logger = setup_logging(output_dir)
-    
+
     torch.manual_seed(42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info(f"Using device: {device}")
@@ -167,27 +135,17 @@ def train(
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train_data)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
-    model = MCST(
-        fusion_type=fusion_type,
-        prediction_type=prediction_type,
+    model = LSTMModel(
         stock_input_dim=22,
-        market_input_dim=24,
         embed_dim=embed_dim,
         num_layers=num_layers,
-        num_heads=num_heads,
         dropout=dropout,
-        ff_hidden_dim=ff_hidden_dim
     )
     model.to(device)
 
     criterion = nn.MSELoss()
     optimiser = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    if lr_scheduler_type == 'cosine':
-        scheduler = get_cosine_schedule_with_warmup(optimiser, num_warmup_epochs, num_training_epochs)
-    elif lr_scheduler_type == 'plateau':
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.3, patience=5, threshold=5e-5, verbose=True)
-    else:
-        raise ValueError(f"Invalid learning rate scheduler type: {lr_scheduler_type}")
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.3, patience=5, threshold=5e-5, verbose=True)
 
     epoch = 0
     train_loss_history, validation_loss_history = [], []
@@ -201,7 +159,6 @@ def train(
 
     logger.info("Starting training loop")
     logger.info(f"Number of training epochs: {num_training_epochs}")
-    logger.info(f"Number of warmup epochs: {num_warmup_epochs}")
     logger.info(f"Batch size: {batch_size}")
     logger.info(f"Learning rate: {learning_rate}")
     logger.info(f"Early stopping: Patience: {early_stopping_patience}, Delta: {early_stopping_delta}, Offset: {early_stopping_offset}")
@@ -209,12 +166,7 @@ def train(
     logger.info(f"Weight decay: {weight_decay}")
     logger.info(f"Dropout: {dropout}")
     logger.info(f"Number of transformer layers: {num_layers}")
-    logger.info(f"Number of attention heads: {num_heads}")
     logger.info(f"Embedding dimension: {embed_dim}")
-    logger.info(f"Feedforward hidden dimension: {ff_hidden_dim}")
-    logger.info(f"Prediction type: {prediction_type}")
-    logger.info(f"Fusion type: {fusion_type}")
-    logger.info(f"Learning rate scheduler type: {lr_scheduler_type}")
     logger.info(f"Dataset path: {dataset_path}")
     logger.info(f"Output directory: {output_dir}")
 
@@ -224,11 +176,10 @@ def train(
             epoch_train_loss = 0.0
             for batch_idx, (stock, market, target) in enumerate(train_dataloader):
                 stock = stock.to(device)
-                market = market.to(device)
                 target = target.to(device)
 
                 optimiser.zero_grad()
-                output = model(stock, market)
+                output = model(stock)
                 loss = criterion(output, target)
 
                 loss.backward()
@@ -262,10 +213,7 @@ def train(
             logger.info(f"Validation: Average loss: {avg_val_loss:.8f}")
 
             # Step the learning rate scheduler with the validation loss
-            if lr_scheduler_type == 'cosine':
-                scheduler.step()
-            elif lr_scheduler_type == 'plateau':
-                scheduler.step(avg_val_loss)
+            scheduler.step(avg_val_loss)
 
             with open(f'{output_dir}/loss.json', 'w') as f:
                 json.dump({'train': train_loss_history, 'validation': validation_loss_history}, f)
