@@ -8,7 +8,7 @@ The MCST model leverages:
 - **Dual Encoder Architecture:**  
   Two independent Transformer encoders—one for stock-specific features (e.g., OHLC prices and trading volume) and one for market-specific features (e.g., SPX, VIX, COR1M).
 - **Fusion Module:**  
-  A fusion layer (using cross-attention, as demonstrated in ablation studies) that integrates outputs from both encoders.
+  A fusion layer (using cross-attention or concatenation) that integrates outputs from both encoders.
 - **Prediction Head:**  
   An attention-based or last time-step aggregation strategy that outputs the next day’s normalised return.
 
