@@ -129,4 +129,3 @@ class MarketContextAblationModel(nn.Module):
         output_last = output[:, -1, :]
 
         return self.prediction_head(output_last)
-

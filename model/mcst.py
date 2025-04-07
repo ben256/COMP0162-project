@@ -323,4 +323,3 @@ class MCST(nn.Module):
         """
         x = self.fusion(stock_data, market_data)
         return self.prediction_head(x)
-

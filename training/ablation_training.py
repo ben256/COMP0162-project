@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
+from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 
 from model.ablation import FusionAblationModel, PredictionTypeAblationModel, MarketContextAblationModel
 from data_processing.dataset import CustomDataset

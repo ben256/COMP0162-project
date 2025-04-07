@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+
 class NullModel:
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
