@@ -3,7 +3,7 @@ import argparse
 
 from data_processing.create_datasets import create_datasets
 from data_processing.process_market_data import process_market_data
-from data_processing.process_stock_data import fetch_data
+from data_processing.process_stock_data import fetch_stock_data
 
 logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(filename)s - %(message)s')
 logging.getLogger().setLevel(logging.INFO)
@@ -24,10 +24,10 @@ def main():
     args = parser.parse_args()
 
     # process_market_data()  # Already on GitHub
-    # fetch_data(
-    #     reference_data_path=args.reference_data_path,
-    #     stock_data_path=args.stock_data_path
-    # )
+    fetch_stock_data(
+        reference_data_path=args.reference_data_path,
+        stock_data_path=args.stock_data_path
+    )
     create_datasets(
         stock_data_path=args.stock_data_path,
         market_data_path=args.market_data_path,

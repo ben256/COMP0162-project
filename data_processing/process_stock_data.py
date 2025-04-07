@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(fil
 logging.getLogger().setLevel(logging.INFO)
 
 
-def fetch_data(
+def fetch_stock_data(
         total_stock_count: int = 200,
         start_date: str = '2015-01-01',
         end_date: str = '2025-01-01',
