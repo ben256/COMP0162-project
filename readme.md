@@ -98,4 +98,4 @@ For a complete explanation of the methodology, experimental setup, and results, 
 
 ---
 
-For any questions or issues, please open an issue on GitHub or contact Benjamin Naylor at [benjamin.naylor.24@ucl.ac.uk](mailto:benjamin.naylor.24@ucl.ac.uk).
+For any questions contact Benjamin Naylor at [benjamin.naylor.24@ucl.ac.uk](mailto:benjamin.naylor.24@ucl.ac.uk).
