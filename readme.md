@@ -12,7 +12,7 @@ The MCST model leverages:
 - **Prediction Head:**  
   An attention-based or last time-step aggregation strategy that outputs the next day’s normalised return.
 
-According to the project report, the model significantly outperforms benchmarks, including a comparable LSTM model, achieving high directional accuracy and lower error rates even when trained on a modest dataset (~500k samples).
+The model significantly outperforms benchmarks, including a comparable LSTM model, achieving high directional accuracy and lower error rates even when trained on a modest dataset (~500k samples).
 
 ## Repository Structure
 
