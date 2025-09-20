@@ -167,6 +167,17 @@ def train(
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train_data)
     validation_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
+    # sanity check training data
+
+    stock_sample, market_sample, target_sample = next(iter(train_dataloader))
+    logger.info(f"Sample stock input shape: {stock_sample.shape}")
+    logger.info(f"Sample market input shape: {market_sample.shape}")
+    logger.info(f"Sample target shape: {target_sample.shape}")
+    assert stock_sample.shape[1] == 25, f"Expected stock input dimension 25, got {stock_sample.shape[1]}"
+    assert market_sample.shape[1] == 24, f"Expected market input dimension 24, got {market_sample.shape[1]}"
+    assert target_sample.shape[1] == 1, f"Expected target dimension 1, got {target_sample.shape[1]}"
+    logger.info("Training data sanity check passed.")
+
     model = MCST(
         fusion_type=fusion_type,
         prediction_type=prediction_type,
