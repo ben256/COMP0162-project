@@ -173,8 +173,8 @@ def train(
     logger.info(f"Sample stock input shape: {stock_sample.shape}")
     logger.info(f"Sample market input shape: {market_sample.shape}")
     logger.info(f"Sample target shape: {target_sample.shape}")
-    assert stock_sample.shape[1] == 25, f"Expected stock input dimension 25, got {stock_sample.shape[1]}"
-    assert market_sample.shape[1] == 24, f"Expected market input dimension 24, got {market_sample.shape[1]}"
+    assert stock_sample.shape[2] == 25, f"Expected stock input dimension 25, got {stock_sample.shape[2]}"
+    assert market_sample.shape[2] == 24, f"Expected market input dimension 24, got {market_sample.shape[2]}"
     assert target_sample.shape[1] == 1, f"Expected target dimension 1, got {target_sample.shape[1]}"
     logger.info("Training data sanity check passed.")
 
@@ -333,5 +333,5 @@ def train(
     logger.info(f"Training complete. Final model saved to: {final_model_path}")
 
 
-# if __name__ == '__main__':
-#     train()
+if __name__ == '__main__':
+    train()
