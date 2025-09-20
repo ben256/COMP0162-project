@@ -170,7 +170,7 @@ def train(
     model = MCST(
         fusion_type=fusion_type,
         prediction_type=prediction_type,
-        stock_input_dim=22,
+        stock_input_dim=25,
         market_input_dim=24,
         embed_dim=embed_dim,
         num_layers=num_layers,
@@ -236,7 +236,7 @@ def train(
 
                 epoch_train_loss += loss.item()
 
-                if batch_idx % 1000 == 0:
+                if batch_idx % 500 == 0:
                     progress = 100. * (batch_idx + 1) / len(train_dataloader)
                     logger.info(
                         f"Train Epoch: {epoch} [{batch_idx + 1}/{len(train_dataloader)} batches ({progress:.2f}%)]\tLoss: {loss.item():.8f}"

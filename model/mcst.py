@@ -101,7 +101,7 @@ class TransformerEncoderBlock(nn.Module):
 class StockEncoder(nn.Module):
     def __init__(
             self,
-            input_dim: int = 22,
+            input_dim: int = 25,
             embed_dim: int = 128,
             num_layers: int = 3,
             num_heads: int = 8,
@@ -174,7 +174,7 @@ class Fusion(nn.Module):
     def __init__(
             self,
             fusion_type: str = 'concat',
-            stock_input_dim: int = 22,
+            stock_input_dim: int = 25,
             market_input_dim: int = 24,
             embed_dim: int = 128,
             num_layers: int = 3,
@@ -277,7 +277,7 @@ class MCST(nn.Module):
             self,
             fusion_type: str = 'cross_attn',
             prediction_type: str = 'attn_pool',
-            stock_input_dim: int = 22,
+            stock_input_dim: int = 25,
             market_input_dim: int = 24,
             embed_dim: int = 128,
             num_layers: int = 3,
