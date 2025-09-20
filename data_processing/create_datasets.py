@@ -37,7 +37,7 @@ def create_datasets(
         stock_data_path: str = '../data/stock',
         market_data_path: str = '../data/market',
         dataset_path: str = '../data/datasets',
-        save_csv: bool = False
+        save_csv: bool = True
 ):
     # Load raw CSVs
     stock_data = pd.read_csv(f'{stock_data_path}/stock_data.csv',
@@ -90,10 +90,6 @@ def create_datasets(
 
     stock_features = pd.concat(stock_features_list)
     stock_features.dropna(inplace=True)
-
-    # For stock features, define the columns to use (exclude raw OHLC)
-    stock_feature_cols = [col for col in stock_features.columns
-                          if col not in ['date', 'symbol', 'open', 'high', 'low', 'close']]
 
     # ----- Merge Market and Stock Features -----
     # Append suffixes to differentiate stock and market features

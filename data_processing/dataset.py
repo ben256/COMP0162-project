@@ -16,11 +16,14 @@ class CustomDataset(Dataset):
         """
         features = torch.tensor(unified_features, dtype=torch.float32)
 
-        self.stock_features = features[:, :, :22]
-        self.market_features = features[:, :, 22:46]
-        self.target_return = features[:, -1, 46].unsqueeze(1)
-        self.target_sign = features[:, -1, 47].unsqueeze(1)
-        self.feature_list = [
+        assert features.shape[2] == 51, "Expected 48 features in the last dimension"
+        assert torch.all((features[:, -1, 50] == 1.0) | (features[:, -1, 50] == 0.0)), "Target sign values must be either 0 or 1"
+
+        self.stock_features = features[:, :, :25]
+        self.market_features = features[:, :, 25:49]
+        self.target_return = features[:, -1, 49].unsqueeze(1)
+        self.target_sign = features[:, -1, 50].unsqueeze(1)
+        self.feature_list = ['z_open_stock', 'z_high_stock', 'z_low_stock',
             'z_returns_stock', 'z_volume_stock', 'z_returns_ma_5_stock', 'z_returns_std_5_stock','z_volume_ma_5_stock',
             'z_volume_std_5_stock', 'z_returns_ma_10_stock', 'z_returns_std_10_stock', 'z_volume_ma_10_stock',
             'z_volume_std_10_stock', 'z_returns_ma_20_stock', 'z_returns_std_20_stock', 'z_volume_ma_20_stock',
